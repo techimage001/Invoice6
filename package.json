@@ -1,0 +1,14 @@
+{
+  "name": "invoicegeneratornow",
+  "version": "58.0.0",
+  "private": true,
+  "description": "InvoiceGeneratorNow - PHP + SQLite invoice, quote and business document generator. Served by Apache/PHP; this manifest is for local tooling and repo metadata only.",
+  "scripts": {
+    "test": "php tests/smoke.php",
+    "lint": "find . -name '*.php' -not -path './node_modules/*' -exec php -l {} \\;",
+    "serve": "php -S localhost:8080"
+  },
+  "engines": {
+    "php": ">=8.1"
+  }
+}

@@ -66,10 +66,12 @@ Packaging
 - The archive is flat. index.php sits at the top level. V57 wrapped everything
   in an "ign" folder, which would have pushed the document root one level too
   high and produced a 403.
-- package.json removed. It was a decoy meant to make Hostinger import the repo
-  as a full site. It does not work on the Node.js Web Apps flow, which only
-  accepts JavaScript frameworks, and it only encourages the wrong deployment
-  path. This is a PHP app.
+- package.json rewritten to match the Card Maker Messages pattern. The V57 file
+  described itself as existing only to trick Hostinger into a full import,
+  which never worked. It now honestly describes the project and carries useful
+  local scripts (lint, smoke test, local serve). Like Card Maker Messages, it is
+  blocked from the web by .htaccess and Hostinger never executes it. It neither
+  enables nor prevents deployment; the hosting type is what decides that.
 - The seven .htaccess files are consolidated into one at the root, matching the
   Card Maker Messages layout. Five were redundant duplicates already covered by
   the root RedirectMatch rule, and the uploads protection is now folded into the

@@ -1,47 +1,70 @@
-# Deploying InvoiceGeneratorNow to Hostinger (Git auto-deploy)
+# Deploying InvoiceGeneratorNow to Hostinger via GitHub
 
-## Why the 403 happened
-Hostinger copies your **repository root** into the site's document root. The
-earlier package kept the web files inside a `public_html/` subfolder, so the
-document root had no `index.php` at the top and Hostinger returned 403.
+## The one thing that matters
 
-## What changed
-The site is now **flattened**: `index.php`, `assets/`, `robots.txt`, `sitemap.xml`
-and everything else live at the repository root — the same layout as the rest of
-your network (e.g. TapPill). No subfolder, no rewrite shim. It works as soon as
-the files are at the repo root.
+This is a **PHP + SQLite application served by Apache**. It deploys exactly the
+same way Card Maker Messages does: through **classic PHP hosting Git
+deployment**, NOT through the Node.js / Web Apps importer.
 
-## Deploy steps
-1. Put the contents of this zip at the **root** of your `Invoicegeneratornow` repo
-   (not inside a subfolder).
-2. **Include the dotfiles.** GitHub's drag-and-drop "Upload files" screen silently
-   skips files that start with a dot (`.htaccess`, `app_private/.htaccess`, etc.).
-   Use one of these so they are not dropped:
-   - GitHub Desktop, or `git add . && git commit && git push` from your machine, or
-   - upload a zip through a client that keeps dotfiles.
-   After pushing, open the repo on GitHub and confirm `.htaccess` is listed at the root.
-3. Trigger the Git deployment in hPanel (or push to the deployed branch).
-4. Visit the site root — you should see the invoice generator.
+The screen titled "Select Git repository to import" that lives under
+`quick-install-node-addon` is the Node.js flow. It cannot host PHP. It will
+either reject the repo outright, or offer to "continue as a static website" —
+which is worse, because static hosting has no PHP interpreter and would serve
+every `.php` file as readable plain text, exposing your source.
 
-## The dotfiles matter for security, not for loading
-Even if `.htaccess` is missing, the homepage still loads (index.php is at the root).
-But the `.htaccess` files are what block `/app_private/`, `/storage/`, `/tests/`,
-`/tools/` and `/cron/` from the web. So make sure they are present.
+Neither adding nor removing `package.json` changes this. Card Maker Messages
+has a `package.json` and still does not deploy through that screen; the file is
+local tooling metadata that Hostinger never executes.
 
-## Belt and braces: keep secrets ABOVE the web root
-Create a folder next to (not inside) the deployed site, named `ign_private`:
+## Correct route
 
-    domains/invoicegeneratornow.com/ign_private/secrets.php
-    domains/invoicegeneratornow.com/public_html/   <-- the deployed repo (document root)
+1. hPanel > **Websites** > **Add Website**
+2. Choose **Empty PHP/HTML website** (not Node.js, not Web App)
+3. Assign the domain `invoicegeneratornow.com`
+4. Open that site's dashboard > **Advanced** > **GIT**
+5. Connect the repository and set the branch, then Deploy
 
-`config.php` looks there first, then falls back to `app_private/secrets.php`.
-Putting secrets above the web root means they can never be served, even if a
-dotfile is missed. Copy `app_private/secrets.example.php` into it and fill in the
-SMTP and APP_URL values. You can also set `DB_PATH` there to keep the SQLite
-database above the web root too.
+Hostinger copies the **repository root** into the document root, so `index.php`
+must sit at the top level of the repo. This archive is already flat — unzip it
+and the contents go straight to the repo root, with no wrapper folder.
 
-## Also before go-live
-- Make `storage/` and `uploads/logos/` writable by the web user (0775).
-- HTTPS: enable "Force HTTPS" in hPanel once the SSL certificate is active (the
-  .htaccess does not force it, to avoid a broken redirect before the cert issues).
-- Publish the SPF, DKIM and DMARC records from EMAIL-SETUP.md.
+## Pushing to GitHub
+
+Use **GitHub Desktop**, or from a terminal:
+
+    git add .
+    git commit -m "V58"
+    git push
+
+Do **not** use GitHub's drag-and-drop "Upload files" page. It silently skips
+every file whose name begins with a dot, and it caps at 100 files per upload.
+Dropping `.htaccess` would leave `app_private/`, `storage/`, `tests/`, `tools/`
+and `cron/` publicly readable, and would remove the block on executing PHP
+inside `uploads/`.
+
+After pushing, open the repo on GitHub and confirm `.htaccess` is listed at the
+root. If it is missing, the upload method dropped it.
+
+## Alternative: File Manager
+
+If Git is being awkward, hPanel > **File Manager** > `public_html`, upload this
+zip, extract it there, then delete the zip. No file-count limit and dotfiles
+survive. This is the fastest way to get the site live.
+
+## After deploying
+
+- Make `storage/` and `uploads/logos/` writable (0775).
+- Copy `app_private/secrets.example.php` to `ign_private/secrets.php` in the
+  folder **beside** `public_html`, not inside it, and fill in SMTP and APP_URL.
+  `config.php` looks there first. Keeping it above the web root means a deploy
+  can never delete it and the web server can never serve it.
+- You can also set `DB_PATH` there so the SQLite database lives above the web
+  root and survives every deploy.
+- Enable **Force HTTPS** in hPanel once the certificate has issued.
+
+## Verify it worked
+
+- `https://invoicegeneratornow.com/` loads the generator.
+- `https://invoicegeneratornow.com/app_private/bootstrap.php` returns **404**.
+  If it shows code, `.htaccess` did not make it into the repo — fix that before
+  doing anything else.
