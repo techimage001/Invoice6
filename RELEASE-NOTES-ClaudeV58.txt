@@ -1,0 +1,114 @@
+InvoiceGeneratorNow ClaudeV58
+
+Site-wide HTTP 500 fixed, plus mobile and cross-device hardening.
+
+
+The 500 error, properly diagnosed
+- Every page on the site returned HTTP 500. The cause was not the zip, the
+  folder layout or Hostinger. It was a fatal PHP error.
+- page_header() in app_private/bootstrap.php called user(), a function that no
+  longer exists. An earlier refactor removed the user-session system and even
+  left a note about it at bootstrap.php line 336, but six call sites were left
+  behind pointing at the removed helpers.
+- Because page_header() runs on every single page, PHP threw
+  "Call to undefined function user()" before any output, and Apache returned a
+  500 sitewide.
+- This is why a syntax check did not catch it. php -l passes cleanly on all 60
+  files. An undefined function is a runtime fault, not a parse fault, so the
+  code looks perfectly valid until it actually runs.
+
+The six call sites found
+  bootstrap.php:923  page_header()    user()      the live blocker
+  bootstrap.php:348  is_admin()       user() x2   latent
+  bootstrap.php:563  get_settings()   uid()       latent, reachable via money()
+  bootstrap.php:570  next_number()    uid()       latent, used by tests
+  bootstrap.php:589  audit()          uid()       latent
+  bootstrap.php:948  owned()          uid()       latent
+
+What changed
+- Removed the dead assignment in page_header(). The variable was assigned and
+  then never read anywhere in the function, so nothing depended on it.
+- Added safe no-session stubs for user() and uid(). These return empty, which
+  matches the post-refactor reality that access is verified email only, and
+  keeps the five remaining callers on their existing no-user branch instead of
+  throwing. Fixing only line 923 would have left five landmines to go off later.
+- Verified: zero undefined function calls now remain across all 60 PHP files.
+
+
+Mobile and cross-device
+The existing stylesheet was already well built, with 38 media queries, mobile
+tables, reduced-motion and high-contrast support. Rather than rewrite 1,170
+working lines, V58 appends a clearly marked block that closes the remaining
+gaps.
+
+- iOS zoom on focus. Safari zooms the viewport whenever a focused field renders
+  below 16px. The generator form was already protected but the signup form was
+  not, so tapping the email field zoomed the page. There is now a 16px floor on
+  every input, select and textarea under 820px and on any touch device.
+- Tap targets. Several controls sat below the 44px Apple and Google guideline:
+  the line-item remove button at 32px, the delete button at 34px, the avatar at
+  32px, and the template chips and gate close button at 38px. All now meet 44px
+  on touch devices, and checkbox labels get a proper hit area.
+- Small phones. There were no rules below 420px, so on a 360px handset a long
+  email address or invoice reference could force horizontal scrolling. Added a
+  400px breakpoint with a tightened type scale and word-breaking on text.
+- Landscape phones. A short viewport could trap the preview pane and leave the
+  signup gate unscrollable. Both are now released when the screen is short.
+- Notched devices. The header and footer ran under the rounded corners and the
+  home indicator. Safe-area insets now apply.
+- iPad portrait. The 768 to 1024 portrait range collapsed the generator
+  awkwardly; it now has an explicit layout.
+- Very wide screens. Text columns grew unreadably wide beyond 1600px and are
+  now capped.
+
+
+Packaging
+- The archive is flat. index.php sits at the top level. V57 wrapped everything
+  in an "ign" folder, which would have pushed the document root one level too
+  high and produced a 403.
+- package.json removed. It was a decoy meant to make Hostinger import the repo
+  as a full site. It does not work on the Node.js Web Apps flow, which only
+  accepts JavaScript frameworks, and it only encourages the wrong deployment
+  path. This is a PHP app.
+- The seven .htaccess files are consolidated into one at the root, matching the
+  Card Maker Messages layout. Five were redundant duplicates already covered by
+  the root RedirectMatch rule, and the uploads protection is now folded into the
+  root file. Fewer dotfiles means fewer chances of one being dropped in transit.
+- Asset cache-buster bumped from v57 to v58 so browsers fetch the new CSS
+  instead of serving the cached stylesheet.
+- The root .htaccess now also blocks CHANGELOG and SETUP files from the web.
+
+
+Deploying this build
+This app must not go through hPanel > Node.js or Web Apps. That flow only
+accepts Angular, Astro, Express, Fastify, Gatsby, Hono, NestJS, Next.js, Nitro,
+Nuxt, Parcel, React, React Router, Svelte, SvelteKit, Vite and Vue.js. There is
+no PHP interpreter behind it.
+
+Use one of these instead:
+- hPanel File Manager: upload and extract straight into public_html. Simplest,
+  and it keeps dotfiles.
+- GitHub Desktop or git push, then Advanced > GIT on the site dashboard.
+
+Do not use GitHub's drag-and-drop upload. It silently skips every file starting
+with a dot, which would drop the root .htaccess and leave app_private, storage,
+tests, tools and cron publicly readable. It also caps at 100 files per upload.
+
+After deploying:
+- Make storage/ and uploads/logos/ writable, 0775.
+- Keep secrets.php in ign_private/ beside public_html, never inside it.
+- Enable Force HTTPS in hPanel once the certificate is active.
+
+
+Test results
+  PHP syntax lint, 60 files            pass
+  Undefined function scan              0 found, was 2 functions across 6 sites
+  Page execution, 42 web-facing pages  42 pass, 0 fatal
+  Homepage render                      64,419 bytes valid HTML, 0 warnings
+  CSS brace balance                    779 / 779
+  CSS comment balance                  141 / 141
+
+Not covered: the mobile fixes are verified as valid CSS and correct rules, but
+were not opened in a real browser at real device widths. Worth a quick look on
+your phone once live, particularly the generator form and the line-item remove
+buttons.
