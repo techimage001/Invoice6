@@ -1,0 +1,85 @@
+InvoiceGeneratorNow ClaudeV66
+
+The picker opened but nothing stuck. Both symptoms had one cause.
+
+
+The cause
+- The document preview (#invPreview) sits INSIDE the generator root (#invgen).
+  Root carries four listeners that re-render the whole document:
+      input  -> render if not editing
+      change -> render when the target is a date input
+      change -> render if not editing
+      input  -> queue a draft save
+- The date overlay is an <input type="date"> living inside the preview, so
+  every event it fires bubbles straight up into those listeners.
+- render() rebuilds the preview's innerHTML. That destroys the very input the
+  person is using, which closes the native picker before the value can commit.
+- iOS makes this immediate and total: the date wheel fires an input event on
+  EVERY scroll step. So the first flick of the wheel destroyed the input, the
+  picker closed, and the value reverted. That is exactly why the issue date
+  looked like it would only ever be today and could not be back-dated.
+- The due date failed by the same mechanism, which is why both broke together.
+- Nothing was ever wrong with the picker itself, and there was never a minimum
+  or maximum date restricting the choice. The value simply had no chance to
+  land.
+
+The fix
+- All four root listeners now ignore events coming from .ed-date-input. A
+  single shared test, fromDateOverlay(), is used in each so they cannot drift
+  apart later.
+- The overlay marks editing=true on focus and on input, which is the existing
+  mechanism the document already uses to mean "do not re-render right now".
+  Belt and braces: even if a new re-render path is added to root later, the
+  editing flag stops it.
+- The preview's generic focusout handler, which schedules a render 120ms after
+  focus leaves any editable field, now excludes the overlay. Otherwise it
+  fired a second render that fought the first.
+- The overlay commits on change only: it writes the picked value to the bound
+  field, clears editing, and renders once. While the wheel is moving, only the
+  visible text and the bound field update, with no re-render at all.
+
+Verified
+- Simulated the exact iOS failure: focus the overlay, fire three input events
+  as if scrolling the wheel, then commit with change.
+
+      back-dating the issue date   renders during scroll: 0
+                                   renders on commit:     1
+                                   input survived scroll: yes
+                                   committed:  2026-06-01 (from 2026-08-18)
+                                   document shows: 2026-06-01
+
+      changing the due date        renders during scroll: 0
+                                   renders on commit:     1
+                                   input survived scroll: yes
+                                   committed:  2026-10-20
+                                   document shows: 2026-10-20
+
+- Back-dating works on both fields. Neither the issue date nor the due date
+  carries a min or max attribute, so any date in the past or future can be
+  chosen on either, on desktop and on mobile.
+
+Unchanged
+- Picker is built on every device, desktop and touch alike.
+- The document still prints ISO 8601 from input.value, so it does not follow
+  the viewer's locale.
+- The overlay is excluded from the rasterised export and from full screen, so
+  it cannot appear in a downloaded PDF, PNG or JPG.
+- Due-date presets still calculate from the issue date rather than today, so
+  back-dating an invoice and then tapping 30 days gives correct terms.
+
+Test results
+  PHP syntax lint, 60 files            pass
+  app.js syntax check                  pass
+  Undefined function scan              0 found
+  Page execution, 42 web-facing pages  42 pass, 0 fatal
+  Homepage render                      65,097 bytes valid HTML, 0 warnings
+  Root re-render paths guarded         4 of 4
+  Renders during picker interaction    0
+  Renders on commit                    1
+  min/max on either date               none
+  CSS brace balance                    881 / 881
+  CSS comment balance                  183 / 183
+
+Packaging
+- Asset cache-buster bumped from v65 to v66. app.js changed; a cached copy
+  would keep the old behaviour exactly as before.

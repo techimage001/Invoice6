@@ -240,11 +240,11 @@ const countryChoice=document.getElementById('countryChoice'),currencyChoice=docu
   // The document IS the form. Each editable region is a contenteditable span bound to a
   // hidden field, so every existing feature (PDF export, autosave, history, totals) keeps
   // reading the same state it always did. Nothing downstream had to change.
-  // Touch devices get the native date picker instead of a text caret on dates.
-  // A keyboard is faster than a calendar, so desktop keeps direct typing.
-  const COARSE = !!(window.matchMedia && window.matchMedia('(pointer:coarse)').matches);
   function ed(field, value, placeholder, cls){
-    const pickerMode = COARSE && !!cls && cls.indexOf('ed-date') >= 0;
+    // Every device, not just touch. V64 gated this behind a coarse-pointer check
+    // on the reasoning that a keyboard beats a calendar; that was my call, not a
+    // requirement, and it meant desktop never got a picker at all.
+    const pickerMode = !!cls && cls.indexOf('ed-date') >= 0;
     if(pickerMode){
       // A REAL date input, transparent, laid over the printed date. Tapping it is
       // a direct interaction with a date input, so every browser opens its own
@@ -403,6 +403,21 @@ const countryChoice=document.getElementById('countryChoice'),currencyChoice=docu
 
   if(preview){
     // The overlaid date input writes straight back to its bound field.
+    // On desktop the segments are typeable, so keep the printed text in step as
+    // they type. A full render here would destroy the input mid-entry and drop
+    // focus, so only the visible text and the bound field are touched.
+    // While a picker is open, nothing may re-render the document.
+    preview.addEventListener('focusin',e=>{
+      if(e.target && e.target.classList && e.target.classList.contains('ed-date-input')) editing=true;
+    });
+    preview.addEventListener('input',e=>{
+      const inp=e.target.closest && e.target.closest('.ed-date-input'); if(!inp) return;
+      editing=true;
+      const f=$(inp.dataset.bind); if(f) f.value=inp.value;
+      const wrap=inp.closest('.ed-date-wrap');
+      const txt=wrap && wrap.querySelector('.ed-date-text');
+      if(txt) txt.textContent=inp.value||(inp.getAttribute('data-ph')||'');
+    },true);
     preview.addEventListener('change',e=>{
       const inp=e.target.closest && e.target.closest('.ed-date-input'); if(!inp) return;
       const f=$(inp.dataset.bind); if(!f) return;
@@ -435,6 +450,9 @@ const countryChoice=document.getElementById('countryChoice'),currencyChoice=docu
     // re-render, because that destroys the element the person just clicked into and
     // their next keystrokes go nowhere.
     preview.addEventListener('focusout',e=>{
+      // The date overlay commits on change and renders itself; this generic
+      // path would fire a second render 120ms later and fight it.
+      if(e.target && e.target.classList && e.target.classList.contains('ed-date-input')) return;
       if(!e.target.closest || !e.target.closest('.ed')) return;
       const goingTo=e.relatedTarget;
       if(goingTo && preview.contains(goingTo) && goingTo.closest && goingTo.closest('.ed')){
@@ -497,10 +515,19 @@ const countryChoice=document.getElementById('countryChoice'),currencyChoice=docu
     });
   }
 
-  root.addEventListener('input',()=>{ if(!editing) render(); });
-  // Date inputs fire change (not always input) when a value comes from the
-  // native picker, so listen for both or the document will not refresh.
+  // The document preview lives INSIDE root, so events from the date overlay
+  // bubble up here. Without this guard, a native picker firing input (iOS fires
+  // it on every scroll of the wheel) re-renders the document, destroys the very
+  // input being used, and closes the picker before the value can commit. That
+  // is why the issue date appeared stuck on today and the due date never moved.
+  const fromDateOverlay = e => !!(e && e.target && e.target.classList
+    && e.target.classList.contains('ed-date-input'));
+
+  root.addEventListener('input',e=>{ if(fromDateOverlay(e)) return; if(!editing) render(); });
+  // Form date inputs (the Details card) still need change, since a picker does
+  // not always fire input there. The overlay handles its own commit.
   root.addEventListener('change',e=>{
+    if(fromDateOverlay(e)) return;
     if(e.target && e.target.type==='date'){ editing=false; render(); }
   });
 
@@ -526,7 +553,7 @@ const countryChoice=document.getElementById('countryChoice'),currencyChoice=docu
       presets.querySelectorAll('.due-chip').forEach(c=>c.classList.remove('is-active'));
     });
   })();
-  root.addEventListener('change',()=>{ if(!editing) render(); });
+  root.addEventListener('change',e=>{ if(fromDateOverlay(e)) return; if(!editing) render(); });
 
   // Template gallery
   const tmplBtns=root.querySelectorAll('[data-template]');
@@ -611,7 +638,7 @@ const countryChoice=document.getElementById('countryChoice'),currencyChoice=docu
   // The draft is restored silently. No banner: it misled first-time visitors into
   // thinking they had an account, and it implied we store their data.
   restoreDraft();
-  root.addEventListener('input',()=>{clearTimeout(saveTimer);saveTimer=setTimeout(saveDraft,400);});
+  root.addEventListener('input',e=>{ if(fromDateOverlay(e)) return; clearTimeout(saveTimer);saveTimer=setTimeout(saveDraft,400);});
   window.addEventListener('pagehide',saveDraft);
 
   // ---- Recently used documents, held locally, no account required ----
