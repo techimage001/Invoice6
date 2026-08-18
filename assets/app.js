@@ -245,8 +245,20 @@ const countryChoice=document.getElementById('countryChoice'),currencyChoice=docu
   const COARSE = !!(window.matchMedia && window.matchMedia('(pointer:coarse)').matches);
   function ed(field, value, placeholder, cls){
     const pickerMode = COARSE && !!cls && cls.indexOf('ed-date') >= 0;
-    return '<span class="ed'+(cls?(' '+cls):'')+'" contenteditable="'+(pickerMode?'false':'true')+'" spellcheck="false"'
-      + (pickerMode?' role="button" tabindex="0" aria-label="Change date"':'')
+    if(pickerMode){
+      // A REAL date input, transparent, laid over the printed date. Tapping it is
+      // a direct interaction with a date input, so every browser opens its own
+      // picker. V63 called showPicker() instead, which throws InvalidStateError
+      // or NotAllowedError depending on the browser, and the focus() fallback is
+      // ignored by iOS when it comes from a tap on a different element - so
+      // nothing happened at all. This depends on no API beyond input[type=date].
+      return '<span class="ed'+(cls?(' '+cls):'')+' ed-date-wrap" data-bind="'+field+'">'
+        + '<span class="ed-date-text">'+esc(value||esc(placeholder||''))+'</span>'
+        + '<input type="date" class="ed-date-input" value="'+esc(value||'')+'"'
+        + ' data-bind="'+field+'" aria-label="Change date">'
+        + '</span>';
+    }
+    return '<span class="ed'+(cls?(' '+cls):'')+'" contenteditable="true" spellcheck="false"'
       + ' data-bind="'+field+'" data-ph="'+esc(placeholder||'')+'">'+esc(value||'')+'</span>';
   }
   // Multi-line editable (address, notes). Newlines survive via <br> on the way out.
@@ -390,30 +402,18 @@ const countryChoice=document.getElementById('countryChoice'),currencyChoice=docu
   }
 
   if(preview){
-    // Open the native picker bound to this date. showPicker() needs a user
-    // gesture, which a click provides; older browsers fall back to focusing
-    // the field in the Details card.
-    function openDatePicker(el){
-      const f = el && el.dataset && el.dataset.bind ? $(el.dataset.bind) : null;
-      if(!f) return false;
-      try{ if(typeof f.showPicker === 'function'){ f.showPicker(); return true; } }catch(err){}
-      try{ f.focus({preventScroll:true}); f.scrollIntoView({block:'center',behavior:'smooth'}); return true; }catch(err){}
-      return false;
-    }
-    preview.addEventListener('click',e=>{
-      if(!COARSE) return;
-      const el=e.target.closest('.ed-date'); if(!el) return;
-      e.preventDefault();
-      openDatePicker(el);
-    });
-    preview.addEventListener('keydown',e=>{
-      if(!COARSE) return;
-      if(e.key!=='Enter' && e.key!==' ') return;
-      const el=e.target.closest && e.target.closest('.ed-date'); if(!el) return;
-      e.preventDefault();
-      openDatePicker(el);
+    // The overlaid date input writes straight back to its bound field.
+    preview.addEventListener('change',e=>{
+      const inp=e.target.closest && e.target.closest('.ed-date-input'); if(!inp) return;
+      const f=$(inp.dataset.bind); if(!f) return;
+      f.value=inp.value;
+      editing=false;
+      render();
     });
     preview.addEventListener('input',e=>{
+      // The date overlay is a real input inside a .ed wrapper; its events must
+      // not be treated as someone typing into the document.
+      if(e.target && e.target.classList && e.target.classList.contains('ed-date-input')) return;
       const el=e.target.closest('.ed'); if(!el) return;
       editing=true;
       const text=edText(el);

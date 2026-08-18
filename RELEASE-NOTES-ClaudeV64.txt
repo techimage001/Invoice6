@@ -1,0 +1,77 @@
+InvoiceGeneratorNow ClaudeV64
+
+The date picker actually opens now. V63's approach could not work on iOS.
+
+
+Why V63's picker did nothing
+- V63 made the date on the document a button and called showPicker() on the
+  hidden date field when it was tapped. The handler was correct and did fire:
+  that was verified by running the exact code in a DOM and confirming
+  showPicker was reached. The failure was the browser refusing the call.
+- Per MDN, showPicker() throws InvalidStateError if the element is not mutable,
+  and NotAllowedError if it is not triggered by a user action with transient
+  activation. Both were caught by a try/catch that swallowed the error without
+  surfacing anything.
+- Execution then fell through to focus() on the field in the Details card. iOS
+  Safari ignores programmatic focus on an input when it originates from a tap
+  on a DIFFERENT element. So the fallback silently did nothing too.
+- Net effect: tap the date, nothing happens, no error, no clue. Exactly what
+  you reported.
+- The deeper mistake was mine, not the browser's: I shipped a feature whose
+  only path to working depended on an API I could not exercise in this
+  environment, and said so in the notes as a caveat rather than choosing an
+  approach that did not need the caveat.
+
+The fix: no scripting API at all
+- The date on the document is now the printed ISO text with a REAL
+  <input type="date"> laid transparently over it, filling the whole area.
+- Tapping the date is therefore a direct interaction with a date input, which
+  is the one thing every browser reliably responds to by opening its own
+  picker. iOS shows its wheel, Android its calendar, desktop its dropdown.
+- There is no showPicker(), no focus() redirection, no feature detection and
+  no fallback path. If input[type=date] works in the browser, the picker
+  works. That is the whole dependency.
+- The overlay is opacity 0 with transparent colour, so the ISO text underneath
+  stays visible and unchanged. Its font-size is 16px, which stops iOS zooming
+  the page when the field takes focus.
+
+What had to be guarded
+- The overlay is a real input sitting inside a span that carries the .ed class.
+  The document's existing input handler treats any event inside .ed as someone
+  typing, and would have read the wrapper's text and written it back to the
+  bound field, corrupting the date on the first tap.
+- That handler now ignores events originating from .ed-date-input, and a
+  separate change handler writes the picked value to the bound field and
+  re-renders. Verified in a DOM: after a simulated pick, the bound field
+  updated, exactly one re-render fired, and the typing handler did not run.
+- The overlay is excluded from the rasterised export and from full screen, so
+  it can never appear in a downloaded PDF, PNG or JPG.
+
+Unchanged from V63
+- The document still prints ISO 8601, 2026-08-15, taken from input.value. It
+  does not follow the viewer's locale, so a client in the US or Germany reads
+  the same date you do.
+- Desktop still types directly. The overlay is only built on coarse pointers.
+- Due-date presets (On receipt, 7, 14, 30 days) are unchanged and still
+  calculate from the issue date rather than today.
+- Neither date has any minimum or maximum. Any date can be picked on either
+  field, including back-dating and a due date before the issue date.
+
+Test results
+  PHP syntax lint, 60 files            pass
+  app.js syntax check                  pass
+  Undefined function scan              0 found
+  Page execution, 42 web-facing pages  42 pass, 0 fatal
+  Homepage render                      65,097 bytes valid HTML, 0 warnings
+  Overlay renders as input[type=date]  confirmed in DOM test
+  Printed text remains ISO             confirmed, 2026-08-15
+  Picked value reaches bound field     confirmed, 2026-09-01
+  Re-render fires exactly once         confirmed
+  Typing handler ignores the overlay   confirmed
+  showPicker() calls remaining         none
+  CSS brace balance                    878 / 878
+  CSS comment balance                  182 / 182
+
+Packaging
+- Asset cache-buster bumped from v63 to v64. Both style.css and app.js changed;
+  serving cached app.js would leave the old broken picker in place.
