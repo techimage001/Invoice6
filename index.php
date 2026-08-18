@@ -117,8 +117,15 @@ page_header('Invoice generator',false,'Invoice generator: create a professional 
     <div class="field-card"><h2 data-role="meta-heading">Details</h2>
       <div class="form-grid">
         <div><label data-role="number-label">Invoice number</label><input id="g_number" value="INV-0001"></div>
-        <div><label>Issue date</label><input id="g_issue" type="date"></div>
-        <div data-role="due-field"><label data-role="due-label">Due date</label><input id="g_due" type="date"></div>
+        <div><label for="g_issue">Issue date</label><input id="g_issue" type="date" aria-describedby="dateFmtHint"><small class="muted date-hint" id="dateFmtHint">Prints on the document as YYYY-MM-DD</small></div>
+        <div data-role="due-field"><label for="g_due" data-role="due-label">Due date</label><input id="g_due" type="date">
+          <div class="due-presets" role="group" aria-label="Set the due date relative to the issue date">
+            <button type="button" class="due-chip" data-days="0">On receipt</button>
+            <button type="button" class="due-chip" data-days="7">7 days</button>
+            <button type="button" class="due-chip" data-days="14">14 days</button>
+            <button type="button" class="due-chip" data-days="30">30 days</button>
+          </div>
+        </div>
         <div class="adv-only" data-role="po-field"><label>Purchase order / reference</label><input id="g_po" placeholder="PO or reference"></div>
         <div class="adv-only" data-role="terms-field"><label>Payment terms</label>
           <select id="g_terms"><option value="">None</option><option>Due on receipt</option><option>Net 7</option><option>Net 14</option><option>Net 30</option><option>Net 60</option></select>

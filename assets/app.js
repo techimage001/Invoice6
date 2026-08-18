@@ -240,8 +240,13 @@ const countryChoice=document.getElementById('countryChoice'),currencyChoice=docu
   // The document IS the form. Each editable region is a contenteditable span bound to a
   // hidden field, so every existing feature (PDF export, autosave, history, totals) keeps
   // reading the same state it always did. Nothing downstream had to change.
+  // Touch devices get the native date picker instead of a text caret on dates.
+  // A keyboard is faster than a calendar, so desktop keeps direct typing.
+  const COARSE = !!(window.matchMedia && window.matchMedia('(pointer:coarse)').matches);
   function ed(field, value, placeholder, cls){
-    return '<span class="ed'+(cls?(' '+cls):'')+'" contenteditable="true" spellcheck="false"'
+    const pickerMode = COARSE && !!cls && cls.indexOf('ed-date') >= 0;
+    return '<span class="ed'+(cls?(' '+cls):'')+'" contenteditable="'+(pickerMode?'false':'true')+'" spellcheck="false"'
+      + (pickerMode?' role="button" tabindex="0" aria-label="Change date"':'')
       + ' data-bind="'+field+'" data-ph="'+esc(placeholder||'')+'">'+esc(value||'')+'</span>';
   }
   // Multi-line editable (address, notes). Newlines survive via <br> on the way out.
@@ -385,6 +390,29 @@ const countryChoice=document.getElementById('countryChoice'),currencyChoice=docu
   }
 
   if(preview){
+    // Open the native picker bound to this date. showPicker() needs a user
+    // gesture, which a click provides; older browsers fall back to focusing
+    // the field in the Details card.
+    function openDatePicker(el){
+      const f = el && el.dataset && el.dataset.bind ? $(el.dataset.bind) : null;
+      if(!f) return false;
+      try{ if(typeof f.showPicker === 'function'){ f.showPicker(); return true; } }catch(err){}
+      try{ f.focus({preventScroll:true}); f.scrollIntoView({block:'center',behavior:'smooth'}); return true; }catch(err){}
+      return false;
+    }
+    preview.addEventListener('click',e=>{
+      if(!COARSE) return;
+      const el=e.target.closest('.ed-date'); if(!el) return;
+      e.preventDefault();
+      openDatePicker(el);
+    });
+    preview.addEventListener('keydown',e=>{
+      if(!COARSE) return;
+      if(e.key!=='Enter' && e.key!==' ') return;
+      const el=e.target.closest && e.target.closest('.ed-date'); if(!el) return;
+      e.preventDefault();
+      openDatePicker(el);
+    });
     preview.addEventListener('input',e=>{
       const el=e.target.closest('.ed'); if(!el) return;
       editing=true;
@@ -470,6 +498,34 @@ const countryChoice=document.getElementById('countryChoice'),currencyChoice=docu
   }
 
   root.addEventListener('input',()=>{ if(!editing) render(); });
+  // Date inputs fire change (not always input) when a value comes from the
+  // native picker, so listen for both or the document will not refresh.
+  root.addEventListener('change',e=>{
+    if(e.target && e.target.type==='date'){ editing=false; render(); }
+  });
+
+  // Due-date presets. Offsets run from the ISSUE date, not from today, so
+  // back-dating an invoice still yields correct terms.
+  (function(){
+    const presets=root.querySelector('.due-presets'); if(!presets) return;
+    presets.addEventListener('click',e=>{
+      const chip=e.target.closest('.due-chip'); if(!chip) return;
+      const issueEl=$('g_issue'), dueEl=$('g_due'); if(!issueEl||!dueEl) return;
+      const base=issueEl.value?new Date(issueEl.value+'T00:00:00'):new Date();
+      if(isNaN(base.getTime())) return;
+      const days=parseInt(chip.dataset.days,10)||0;
+      base.setDate(base.getDate()+days);
+      const pad=n=>String(n).padStart(2,'0');
+      dueEl.value=base.getFullYear()+'-'+pad(base.getMonth()+1)+'-'+pad(base.getDate());
+      presets.querySelectorAll('.due-chip').forEach(c=>c.classList.toggle('is-active',c===chip));
+      editing=false; render();
+    });
+    // A manual edit clears the preset highlight; it no longer describes the value.
+    const dueEl=$('g_due');
+    if(dueEl) dueEl.addEventListener('input',()=>{
+      presets.querySelectorAll('.due-chip').forEach(c=>c.classList.remove('is-active'));
+    });
+  })();
   root.addEventListener('change',()=>{ if(!editing) render(); });
 
   // Template gallery

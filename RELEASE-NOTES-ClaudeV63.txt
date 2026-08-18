@@ -1,0 +1,105 @@
+InvoiceGeneratorNow ClaudeV63
+
+Date entry: native picker on touch, relative due-date presets, and the
+document output kept locale-independent.
+
+
+What was already there
+- The app already had two proper native date inputs, g_issue and g_due, both
+  type="date", sitting in the Details card. Tapping either has always given
+  you the iOS wheel or the Android calendar.
+- What you see on the document is a mirror of those values, rendered as an
+  editable span bound to the input. So the picker existed; it simply was not
+  where you were tapping. This release connects the two rather than building
+  anything new.
+
+
+What best practice actually says
+- The guidance across GOV.UK, NHS, NSW and the US CMS design systems splits on
+  one question: does the user already know the date, or are they choosing one?
+  Text entry wins for dates a user is copying, such as a birthday. A picker
+  wins when the date is near the present day and the day of the week matters.
+- Invoice dates are the second case. The issue date is nearly always today or
+  within a few days, and a due date is a forward date where "is that a
+  Saturday" is a real question. A picker is appropriate here.
+- Three conditions come with it, and all three are honoured:
+    1. Text entry must still work. Desktop keeps direct typing untouched.
+    2. The picker is an enhancement, not the mechanism. The underlying field
+       is a native input and works on its own.
+    3. The displayed format must not be ambiguous.
+
+
+The format decision, and what was deliberately NOT done
+- The obvious change would be to put an <input type="date"> into the document
+  itself. That was rejected on purpose.
+- A native date input renders in the VIEWER'S browser locale. You would see
+  15/08/2026, a US client would see 08/15/2026, a German client 15.08.2026,
+  and there is no way to control it. On a document you send to customers, in
+  an app covering 250 countries and six document languages, that is a
+  payment-terms dispute waiting to happen, not a cosmetic issue.
+- The document therefore keeps printing ISO 8601, 2026-08-15, which reads the
+  same in every country. The value comes straight from input.value, which is
+  always ISO for a date input regardless of what the picker displays.
+- A note under the issue date now says so plainly: it prints as YYYY-MM-DD.
+
+
+Tapping a date on the document
+- On touch devices, dates in the document are no longer text you type into.
+  They are marked as buttons, and tapping one opens the native picker bound to
+  that field. Keyboard users get the same on Enter or Space.
+- showPicker() requires a user gesture, which a tap provides, and it is
+  wrapped so an older browser falls back to focusing the field in the Details
+  card and scrolling it into view.
+- Desktop is deliberately unchanged. A keyboard is faster than a calendar, so
+  direct typing stays. Every new behaviour is gated behind a coarse-pointer
+  check.
+- Date targets are 44px on touch. Ten characters of text was previously a very
+  small thing to hit accurately.
+
+
+Due-date presets
+- The strongest pattern for invoice due dates is not a calendar at all. Terms
+  are relative: on receipt, 7 days, 14 days, 30 days. Hunting for the 14th of
+  next month on a calendar is the slow path for something that is really an
+  offset.
+- Four chips now sit under the due date: On receipt, 7 days, 14 days,
+  30 days. The calendar remains for anything else.
+- Offsets run from the ISSUE date, not from today, so back-dating an invoice
+  still produces correct terms. Verified across month rollover, year rollover
+  and a leap year:
+      2026-08-15 +30  ->  2026-09-14
+      2026-12-20 +30  ->  2027-01-19
+      2026-02-27 +7   ->  2026-03-06
+      2024-02-27 +7   ->  2024-03-05
+- The selected chip highlights, and editing the date by hand clears that
+  highlight, since it no longer describes the value.
+
+
+One fix that would otherwise have bitten
+- The document refreshes on the form's input event. A date arriving from a
+  native picker does not reliably fire input in every browser; it fires
+  change. A change listener for date inputs was added alongside, or picking a
+  date would have updated the field and left the document showing the old
+  value.
+
+
+Packaging
+- Asset cache-buster bumped from v62 to v63. Both style.css and app.js changed.
+
+
+Test results
+  PHP syntax lint, 60 files            pass
+  app.js syntax check                  pass
+  Undefined function scan              0 found
+  Page execution, 42 web-facing pages  42 pass, 0 fatal
+  Homepage render                      65,097 bytes valid HTML, 0 warnings
+  Preset date arithmetic               7 cases incl. rollover and leap year
+  Document output format               ISO, from input.value
+  Desktop behaviour                    unchanged, all new paths coarse-gated
+  CSS brace balance                    874 / 874
+  CSS comment balance                  180 / 180
+
+Not covered: showPicker() cannot be exercised without a real browser, so the
+fallback path is written but unobserved. On your phone, check that tapping the
+issue date on the document opens the picker rather than the keyboard, and that
+the 30 days chip sets a due date exactly 30 days after the issue date.
