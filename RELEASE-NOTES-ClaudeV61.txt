@@ -1,0 +1,96 @@
+InvoiceGeneratorNow ClaudeV61
+
+Mobile order corrected, Build Document made a heading, and the reason the
+document never actually reflowed in V60.
+
+
+1. "Build Document" is now a heading, not a button
+- It was an anchor styled as a primary button. It is now a plain <h2> with no
+  href, no pointer cursor and no hover state. It cannot be clicked because
+  there is nothing to click.
+- Directly beneath it, and above the document, sit the Document type and
+  Document language card and the Currency, logo & options panel, exactly as
+  they appear on desktop. The user now reads "Build Document" and immediately
+  sees the controls that build it.
+
+
+2. Download and share moved to the bottom
+- You said the buttons should be at the bottom. In V60 they were ordered
+  third, but an earlier rule pins the bar with position:sticky and bottom:0,
+  so it floated over the document as you scrolled. That is what you saw
+  hanging in the middle of the invoice.
+- The bar is now forced into normal document flow (position:static, no
+  z-index, no shadow) and ordered last, after the form. It scrolls with the
+  page and cannot overlap anything.
+
+Mobile order is now:
+      1  "Build Document" heading
+      2  Document type and language
+      3  Currency, logo & options
+      4  the document
+      5  line items and the rest of the form
+      6  download and share
+
+- This is achieved with display:contents on the form, which lifts its children
+  into the page's flex flow so each can be ordered individually. The form never
+  submits (onsubmit returns false), so nothing depends on its box.
+
+
+3. Why the document did not reflow in V60
+- V60 claimed the document reflowed. It did not, and your screenshot showed
+  it: the line items still ran across in one row, values were clipped at the
+  right edge, and the close control was cut off.
+- The cause: lines 702 to 713 of the stylesheet re-enable display:table,
+  display:table-row and display:table-cell with !important on mobile. That
+  block sits AFTER the stacking rules at line ~584 and undoes all of them. My
+  V60 rules set width and min-width but never set display, so the !important
+  table rules kept winning and the table stayed a table.
+- I verified min-width was 0 and reported the reflow as working. Checking one
+  property and inferring the rest is how this got shipped twice. The check now
+  resolves display as well, on the table, thead, tbody, tr and td.
+
+What changed
+- The line-item table genuinely stacks now. Each line becomes a bordered card,
+  and each field is its own row with an uppercase label pulled from the
+  data-label attribute that app.js already emits. Description, quantity, unit
+  price and amount are all visible with no sideways scrolling.
+- The remove control is absolutely positioned in the card corner rather than
+  taking a full stacked row of its own.
+- Full screen still restores the true print-accurate layout: real table, real
+  660px width, pinch-zoom and two-dimensional scrolling. That is the scoped
+  WCAG 1.4.10 exception and it is deliberately opt-in.
+- Verified by resolving the final winning rule for each property rather than
+  asserting:
+
+      inline  table.doc-items display   flex / block   (stacked)
+      inline  thead                     none
+      inline  .doc min-width            0
+      full    table.doc-items display   table-cell     (true layout)
+      full    .doc min-width            660px
+      actions position                  static
+
+- Stacked cards follow the dark theme via --rule.
+
+
+Packaging
+- Asset cache-buster bumped from v60 to v61. Without it the browser serves the
+  cached stylesheet and none of this appears.
+
+
+Test results
+  PHP syntax lint, 60 files            pass
+  Undefined function scan              0 found
+  Page execution, 42 web-facing pages  42 pass, 0 fatal
+  Homepage render                      64,484 bytes valid HTML, 0 warnings
+  Build Document renders as <h2>       confirmed, no anchor present
+  Mobile order 1-6                     confirmed in resolved CSS
+  Inline table display                 stacked
+  Full-screen table display            true table
+  Actions bar position                 static
+  CSS brace balance                    835 / 835
+  CSS comment balance                  165 / 165
+
+Not covered: these are resolved-CSS checks, not a browser render. The one
+thing worth confirming on your phone is that each line item shows as a
+bordered card with DESCRIPTION, QTY, UNIT PRICE and AMOUNT stacked and
+labelled, and that the download buttons sit below everything.

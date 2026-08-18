@@ -15,7 +15,7 @@ page_header('Invoice generator',false,'Invoice generator: create a professional 
     <summary>Recently used <span class="muted">(saved on this device only)</span></summary>
     <div id="historyList" class="history-list"></div>
   </details>
-  <a class="jump-controls" href="#docControls" role="button">Build Document <span aria-hidden="true">&#8595;</span></a>
+  <h2 class="build-heading">Build Document</h2>
   <form class="gen-form" onsubmit="return false" novalidate>
     <div class="field-card doc-controls" id="docControls">
       <div class="form-grid">

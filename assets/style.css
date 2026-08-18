@@ -1298,65 +1298,6 @@ html{scroll-behavior:smooth}
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
-   1. MOBILE ORDER
-   Desktop reads: controls, document, actions. Mobile mirrors the same logic
-   but leads with the document so the user sees the thing they are making,
-   with a primary call to action directly above it.
-        1  Build Document   (jump to the controls)
-        2  the document     (reflows, vertical scroll only)
-        3  download / share (directly under the document, as on desktop)
-        4  the controls
-   -------------------------------------------------------------------------- */
-@media(max-width:820px){
-  .gen-grid{display:flex;flex-direction:column;gap:14px}
-  .jump-controls  {order:1}
-  .gen-preview-wrap{order:2}
-  .gen-actions-bar {order:3}
-  .gen-form        {order:4}
-  .history-panel   {order:5}
-}
-
-/* --- Build Document: the primary action, full width, thumb-sized --------- */
-.jump-controls{display:none}
-@media(max-width:820px){
-  .jump-controls{
-    display:inline-flex;align-items:center;justify-content:center;gap:9px;
-    width:100%;min-height:52px;margin:0;
-    background:var(--accent);color:var(--accent-ink);
-    border-radius:var(--radius-sm);font-weight:700;font-size:1rem;
-    letter-spacing:-.01em;text-decoration:none;
-    box-shadow:0 1px 2px rgba(16,32,63,.12),0 6px 16px rgba(42,86,214,.22)}
-  .jump-controls:hover,.jump-controls:focus-visible{
-    background:var(--accent-strong);color:var(--accent-ink);text-decoration:none}
-  .jump-controls:active{transform:translateY(1px)}
-}
-
-/* --- Action bar: one primary, five secondary ----------------------------
-   Desktop puts six buttons in a row. On a 390px screen that is ~55px each,
-   below the 44px touch floor once padding is counted. So: Download PDF takes
-   the full width as the primary action, the rest sit in a 3-up grid. */
-@media(max-width:820px){
-  .gen-actions-bar .gen-actions{
-    display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:10px}
-  .gen-actions-bar .gen-actions #genDownload{
-    grid-column:1/-1;min-height:52px;font-size:1rem}
-  .gen-actions-bar .gen-actions .btn.secondary{min-height:46px;font-size:.88rem;padding:10px 8px}
-  .gen-actions-bar .gen-actions #genUses{
-    grid-column:1/-1;text-align:center;font-size:.8rem;margin:2px 0 0}
-}
-
-/* --- Reflowed document: keep the stacked line items legible -------------- */
-@media(max-width:820px){
-  .gen-preview-wrap .doc table,.gen-preview-wrap .doc .mobile-table{
-    width:100%!important;min-width:0!important;overflow:visible!important}
-  .gen-preview-wrap .doc-items th,.gen-preview-wrap .doc-items td{
-    padding:8px 6px!important;font-size:13px!important}
-  .gen-preview-wrap .doc .ed{min-height:30px}
-  /* Full screen restores the true two-dimensional layout on purpose. */
-  body.doc-fs .gen-preview-wrap .doc table{min-width:600px!important}
-}
-
-/* --------------------------------------------------------------------------
    2. DARK THEME — cascade fix
    The V41 premium pass added a SECOND :root block (line ~896) defining
    --ink-1/2/3, --rule, --surface, --surface-2, --accent-ink and the shadows.
@@ -1384,3 +1325,115 @@ html[data-theme="dark"] .feature-list .card h3{border-top-color:var(--ink-1)}
 html[data-theme="dark"] .trust-band strong,
 html[data-theme="dark"] .sibling strong{color:var(--ink-1)!important}
 html[data-theme="dark"] .landing-sections .card{background:none}
+
+/* ==========================================================================
+   V61 — mobile order, static heading, real table reflow
+   This block is last in the file on purpose, so it wins on source order as
+   well as specificity. Nothing below it may override these.
+   ========================================================================== */
+
+/* Desktop keeps the heading out of the way entirely. */
+.build-heading{display:none}
+
+@media(max-width:820px){
+
+  /* ---- 1. ORDER -----------------------------------------------------
+     Mirrors desktop: controls first, document, then actions LAST.
+        1  "Build Document" heading
+        2  Document type + language
+        3  Currency, logo & options
+        4  the document
+        5  line items and the rest of the form
+        6  download / share            <- bottom, as asked
+     display:contents lifts the form's children into the grid's flex flow so
+     they can be ordered individually. The form never submits (onsubmit
+     returns false), so nothing depends on its box.                        */
+  .gen-grid{display:flex;flex-direction:column;gap:14px}
+  .gen-form{display:contents}
+  .gen-form > *{order:5}                 /* default for everything in the form */
+  .build-heading   {order:1}
+  #docControls     {order:2}
+  .gen-form > .doc-options{order:3}
+  .gen-preview-wrap{order:4}
+  .gen-actions-bar {order:6}
+  .history-panel   {order:7}
+
+  /* ---- 2. THE HEADING ------------------------------------------------
+     Static text, not a control. No href, no pointer, no hover state.     */
+  .build-heading{
+    display:block;margin:2px 0 0;padding:0;
+    font-size:1.3rem;font-weight:800;letter-spacing:-.02em;
+    color:var(--ink-1);cursor:default}
+
+  /* ---- 3. ACTIONS AT THE BOTTOM --------------------------------------
+     They were floating over the document because an earlier rule pins the
+     bar with position:sticky;bottom:0. At the foot of the page that is
+     exactly what "hangs in the middle of the invoice" looks like. It now
+     sits in normal flow, after everything.                                */
+  .gen-actions-bar{
+    position:static!important;bottom:auto!important;top:auto!important;
+    z-index:auto!important;box-shadow:none!important;
+    background:transparent!important;border-top:0!important;
+    padding:0!important;margin:2px 0 0!important;width:100%}
+  .gen-actions-bar .gen-actions{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:9px;
+    background:var(--card);border:1px solid var(--line);
+    border-radius:var(--radius);padding:12px;margin:0}
+  .gen-actions-bar .gen-actions #genDownload{
+    grid-column:1/-1;min-height:52px;font-size:1rem}
+  .gen-actions-bar .gen-actions .btn.secondary{
+    min-height:46px;font-size:.88rem;padding:10px 8px}
+  .gen-actions-bar .gen-actions #genUses{
+    grid-column:1/-1;text-align:center;font-size:.8rem;margin:2px 0 0}
+
+  /* ---- 4. THE DOCUMENT ACTUALLY REFLOWS -------------------------------
+     Lines 702-713 re-enable display:table with !important, which defeated
+     the stacking rules written at line ~584 and left the document wider
+     than the screen. These rules are more specific AND later, so the table
+     genuinely stacks: one labelled row per field, nothing off-screen.
+     WCAG 1.4.10 Reflow (AA): no two-dimensional scrolling at 320px.      */
+  .gen-preview-wrap .doc{min-width:0!important;width:100%!important;
+    max-width:100%!important;overflow:visible!important}
+  .gen-preview-wrap .doc .mobile-table{overflow:visible!important;width:100%!important}
+  .gen-preview-wrap .doc table.doc-items{display:block!important;width:100%!important;
+    min-width:0!important;table-layout:auto!important}
+  .gen-preview-wrap .doc table.doc-items thead{display:none!important}
+  .gen-preview-wrap .doc table.doc-items tbody{display:block!important;width:100%!important}
+  .gen-preview-wrap .doc table.doc-items tr{
+    display:block!important;width:100%!important;position:relative;
+    border:1px solid var(--line);border-radius:10px;
+    padding:8px 34px 8px 10px;margin:0 0 8px}
+  .gen-preview-wrap .doc table.doc-items td{
+    display:flex!important;width:100%!important;max-width:none!important;
+    align-items:baseline;justify-content:space-between;gap:12px;
+    border:0!important;padding:4px 0!important;text-align:right!important;
+    font-size:13.5px!important}
+  /* The label comes from data-label, which app.js already emits. */
+  .gen-preview-wrap .doc table.doc-items td[data-label]::before{
+    content:attr(data-label);flex:0 0 auto;text-align:left;
+    font-size:11px;font-weight:700;letter-spacing:.04em;
+    text-transform:uppercase;color:var(--ink-3);opacity:.9}
+  .gen-preview-wrap .doc table.doc-items td:first-child{
+    text-align:left!important;font-weight:600}
+  .gen-preview-wrap .doc table.doc-items td.col-act{
+    position:absolute;top:6px;right:6px;width:28px!important;padding:0!important}
+  .gen-preview-wrap .doc table.doc-items td.col-act::before{content:none}
+
+  /* ---- 5. FULL SCREEN keeps the true, print-accurate layout ------------
+     This is the scoped 1.4.10 exception: deliberate, opt-in, pinch-zoom.  */
+  body.doc-fs .gen-preview-wrap .doc{min-width:660px!important;width:660px!important;
+    max-width:none!important}
+  body.doc-fs .gen-preview-wrap .doc table.doc-items,
+  body.doc-fs .gen-preview-wrap .doc table.doc-items tbody{display:table!important}
+  body.doc-fs .gen-preview-wrap .doc table.doc-items thead{display:table-header-group!important}
+  body.doc-fs .gen-preview-wrap .doc table.doc-items tr{
+    display:table-row!important;border:0;border-radius:0;padding:0;margin:0}
+  body.doc-fs .gen-preview-wrap .doc table.doc-items td{
+    display:table-cell!important;width:auto!important;text-align:left!important;
+    padding:8px 6px!important}
+  body.doc-fs .gen-preview-wrap .doc table.doc-items td::before{content:none!important}
+  body.doc-fs .gen-preview-wrap .doc table.doc-items td.col-act{position:static;width:34px!important}
+}
+
+/* Dark mode: the stacked line-item cards follow the theme. */
+html[data-theme="dark"] .gen-preview-wrap .doc table.doc-items tr{border-color:var(--rule)}
