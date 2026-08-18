@@ -1,0 +1,8 @@
+# InvoiceGeneratorNow
+> Simple quote, job, invoice and overdue-record software for small service businesses.
+- https://InvoiceGeneratorNow.com/ : Product overview
+- https://InvoiceGeneratorNow.com/features.php : Product features
+- https://InvoiceGeneratorNow.com/invoice_software_small_business.php : Small business invoicing guide
+- https://InvoiceGeneratorNow.com/quote_and_invoice_software.php : Quote-to-invoice workflow
+- https://InvoiceGeneratorNow.com/invoice_generator_uk.php : UK invoice generator guide
+- https://InvoiceGeneratorNow.com/methodology.php : How the product and guidance are checked

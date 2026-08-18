@@ -1,0 +1,18 @@
+<?php require_once __DIR__.'/app_private/bootstrap.php';
+if($_SERVER['REQUEST_METHOD']==='POST'){require_csrf();if(!empty($_POST['website']))redirect('/contact.php');if(($_POST['js_token']??'')!=='ready'||time()-(int)($_POST['started_at']??time())<2){flash('error','Please refresh the page and try again.');redirect('/contact.php');}if(rate_limited('contact',4,60)){flash('error','Too many messages. Please try again later.');redirect('/contact.php');}record_rate('contact');$name=trim($_POST['name']??'');$email=trim($_POST['email']??'');$msg=trim($_POST['message']??'');if($name&&filter_var($email,FILTER_VALIDATE_EMAIL)&&strlen($msg)>=10&&strlen($msg)<=5000){db()->prepare('INSERT INTO contact_messages(name,email,message) VALUES(?,?,?)')->execute([$name,$email,$msg]);send_plain_mail(CONTACT_EMAIL,'InvoiceGeneratorNow contact from '.$name,"From: $name <$email>\n\n$msg");flash('success','Message received.');redirect('/contact.php');}flash('error','Please complete all fields.');}
+page_header('Contact',false,'Contact InvoiceGeneratorNow for account, product or privacy support.');?><h1>Contact InvoiceGeneratorNow</h1><p class="answer-block">Contact us using the form below and the message reaches us directly. We answer questions about how the documents work, corrections to our guidance, and anything that is not behaving as it should. We do not process payments, so we cannot help with a payment a customer owes you.</p>
+<h2>What can we help with?</h2>
+<ol class="card gen-steps">
+  <li>Something in the builder is not working as described.</li>
+  <li>Guidance on a page looks wrong for your country.</li>
+  <li>You cannot reach your saved documents.</li>
+  <li>A link is broken or a document is missing a field you need.</li>
+</ol>
+<p>Email <a href="mailto:<?=e(CONTACT_EMAIL)?>"><?=e(CONTACT_EMAIL)?></a> or use the form below.</p><form class="form protected-form" method="post" style="max-width:720px"><?=csrf_field()?><input style="display:none" name="website" tabindex="-1"><input type="hidden" name="started_at" value="<?=time()?>"><input type="hidden" name="js_token" value=""><label>Name</label><input name="name" required><br><br><label>Email</label><input type="email" name="email" required><br><br><label>Message</label><textarea name="message" minlength="10" maxlength="5000" required></textarea><br><button>Send message</button></form><?php
+faq_block([
+ ['How quickly do you reply to messages?','We read everything that comes through the form and reply as soon as we reasonably can. Reports of something broken get looked at first, because if one person hits a fault others will too. Please include the document type you were building and what you expected to happen, as that usually makes the cause obvious straight away.'],
+ ['Can you help me chase a customer who has not paid?','Not directly, because we never handle money and are not a party to your invoice. What we can do is help you use the tools that make payment more likely, such as clear payment terms, a payment reminder document, and the overdue list that comes with an account.'],
+ ['I cannot sign in, what should I do?','Signing in works by a one-click link sent to your email, so start by checking your spam folder, as filters sometimes catch the first one. Links expire after 48 hours and only work once. Request a fresh link and, if it still does not arrive, contact us with the email address you used.'],
+ ['Do you offer phone support?','No, everything goes through this form so there is a written record of what was asked and answered. That means you do not have to explain a problem twice, and we can look properly at the detail of a document rather than trying to picture it over a call.'],
+],'Questions before you write');
+page_footer();?>
