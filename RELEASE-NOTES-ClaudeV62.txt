@@ -1,0 +1,98 @@
+InvoiceGeneratorNow ClaudeV62
+
+The line items redesigned as cards, proper labels, and much bigger fields to
+type into.
+
+
+Why the labels were missing again
+- V61 stacked the line items but every field appeared unlabelled: a bare "1",
+  a bare "0", a bare "$0.00" with nothing saying which was quantity, which was
+  unit price and which was the amount.
+- The labels were drawn with td::before and content:attr(data-label). Line 708
+  of the stylesheet contains .doc td::before{display:none!important}. I set
+  content but never set display, so the pseudo-element existed with the right
+  text and was simply never painted.
+- This is the third time the same mistake caused a failure: setting some
+  properties on a rule while an earlier !important declaration held the one
+  that actually mattered. Rather than add another override to that fight, the
+  labels are now real <span class="li-lbl"> elements written by app.js. A
+  td::before rule cannot hide an element that is not a pseudo-element.
+
+
+Line items are now cards
+- Each line is a bordered card on a tinted background, laid out the way the
+  printed line reads rather than as four disconnected stacked rows:
+
+      DESCRIPTION
+      [ full-width field                                   ]
+
+      QTY            UNIT PRICE        AMOUNT
+      [   1   ]      [   0    ]        $0.00
+
+- Description spans the full card width. Quantity, unit price and amount sit
+  in a three-up row beneath it, each with a small uppercase label above the
+  field, so nothing is ambiguous at 360px.
+- The remove control moves inside the card, pinned to the top right, out of
+  the content flow. Previously it hung off the right edge of the card.
+- Amount is calculated, not typed, so it is styled as a value rather than as
+  an input. It no longer looks like an empty field waiting for entry.
+
+
+Bigger boxes to type in
+- The editable fields were bare inline text with no visual affordance: you
+  could not tell where a field began or ended, and the tap target was only as
+  tall as the text.
+- Every editable field in the document now renders as a real box: full width
+  where appropriate, 44px minimum height, 11px by 12px padding, a card
+  background, a border and a rounded corner, with a focus ring.
+- Text is set at 15px. That is both easier to read and above the 16px-adjacent
+  threshold that matters on iOS, alongside the existing zoom protections.
+- The "+ Line item" button is now 48px tall and full width.
+- Totals keep compact inline fields, since those are short numeric entries
+  sitting in a right-aligned column and a full-width box would look wrong
+  there.
+
+
+Viewing the whole invoice
+- The document remains at full screen width with no sideways scrolling, so the
+  entire invoice is visible by scrolling down only. Padding reduced slightly
+  to 16px to give the content more room on narrow screens.
+- Full screen still restores the true printed layout: real table, real 660px
+  width, labels hidden, fields back to plain inline text, pinch-zoom and
+  two-dimensional scrolling. That is the deliberate check before download.
+
+
+Verification
+- Every property that has previously been overridden was resolved through the
+  full cascade and the winning value printed, rather than assumed:
+
+      li-lbl display          block            (none in full screen)
+      doc-items tr display    grid
+      doc-items td display    block
+      .ed display             block
+      .ed min-height          44px
+      .ed font-size           15px
+      .doc min-width          0                (660px in full screen)
+      col-act position        absolute
+
+
+Packaging
+- Asset cache-buster bumped from v61 to v62. Both style.css and app.js
+  changed in this release, so without the bump the browser would serve the old
+  JavaScript and no labels would appear at all.
+
+
+Test results
+  PHP syntax lint, 60 files            pass
+  app.js syntax check                  pass
+  Undefined function scan              0 found
+  Page execution, 42 web-facing pages  42 pass, 0 fatal
+  Homepage render                      64,484 bytes valid HTML, 0 warnings
+  Resolved CSS winners                 all 8 checked properties correct
+  CSS brace balance                    859 / 859
+  CSS comment balance                  175 / 175
+
+Not covered: resolved-CSS and syntax checks, not a browser render. Worth
+confirming on your phone that each line item shows as a card with DESCRIPTION
+above a wide field, then QTY, UNIT PRICE and AMOUNT labelled in a row beneath,
+and that tapping any field gives you a visible box rather than bare text.

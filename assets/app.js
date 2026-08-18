@@ -318,10 +318,10 @@ const countryChoice=document.getElementById('countryChoice'),currencyChoice=docu
       const priceMinor=toMinor(pv), q2=parseFloat(qv)||0;
       const grossMinor=M()?M().mulQty(priceMinor,q2):Math.round(priceMinor*q2);
       html+='<tr data-row="'+i+'">'
-        + '<td data-label="'+tr('description')+'">'+edLine(i,'d',dv2,'Description of item or service')+'</td>'
-        + '<td data-label="'+tr('qty')+'">'+edLine(i,'q',qv,'1','ed-num')+'</td>'
-        + (showPrice?('<td data-label="'+tr('price')+'">'+edLine(i,'p',pv,'0','ed-num')+'</td>'
-        + '<td data-label="'+tr('amount')+'" class="li-amount">'+money(grossMinor)+'</td>'):'')
+        + '<td data-label="'+tr('description')+'"><span class="li-lbl">'+tr('description')+'</span>'+edLine(i,'d',dv2,'Description of item or service')+'</td>'
+        + '<td data-label="'+tr('qty')+'"><span class="li-lbl">'+tr('qty')+'</span>'+edLine(i,'q',qv,'1','ed-num')+'</td>'
+        + (showPrice?('<td data-label="'+tr('price')+'"><span class="li-lbl">'+tr('price')+'</span>'+edLine(i,'p',pv,'0','ed-num')+'</td>'
+        + '<td data-label="'+tr('amount')+'" class="li-amount"><span class="li-lbl">'+tr('amount')+'</span><span class="li-amt-v">'+money(grossMinor)+'</span></td>'):'')
         + '<td class="col-act">'+(liRows.length>1?'<button type="button" class="li-del" data-row="'+i+'" aria-label="Remove this line">&#10005;</button>':'')+'</td>'
         + '</tr>';
     });
