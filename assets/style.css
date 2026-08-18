@@ -1164,16 +1164,25 @@ footer{border-top:1px solid var(--rule);margin-top:5em;padding-top:3em}
    ============================================================ */
 @media(max-width:820px){
   .gen-preview-wrap{max-height:none!important;overflow:visible!important}
-  /* Horizontal scroll belongs to the document pane, never the page */
-  .gen-preview-wrap .doc-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;
-    border-radius:10px;background:#fff}
+  /* V60: the inline document REFLOWS. WCAG 1.4.10 (AA) forbids two-dimensional
+     scrolling at 320px except for parts that genuinely need a 2D layout. The
+     text blocks here do not, so nothing scrolls sideways. The line-item table
+     stacks via the rules further up, which were written for exactly this and
+     were previously defeated by min-width:660px. */
+  .gen-preview-wrap .doc-scroll{overflow-x:visible;width:100%}
   .gen-preview-wrap .doc{
     zoom:1!important;                 /* full size: text stays legible while editing */
-    min-width:660px;                  /* a document needs room; the pane scrolls */
-    padding:22px!important;
-    font-size:13px;
+    min-width:0!important;            /* reflow, do not force a page width */
+    width:100%;max-width:100%;
+    padding:18px!important;
+    font-size:13.5px;
   }
-  body.doc-fs .gen-preview-wrap .doc{min-width:0;width:100%}
+  /* Full screen is the print-accurate check: real layout, pinch-zoom, 2D scroll.
+     This is the scoped exception, deliberately opt-in. */
+  body.doc-fs .gen-preview-wrap{overflow:auto!important;-webkit-overflow-scrolling:touch}
+  body.doc-fs .gen-preview-wrap .doc-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  body.doc-fs .gen-preview-wrap .doc{min-width:660px!important;width:660px;max-width:none;
+    padding:26px!important;font-size:13px}
   /* Editable targets stay comfortable for thumbs */
   .gen-preview-wrap .ed{min-height:26px}
   .doc-items th,.doc-items td{padding:9px 7px!important;font-size:12.5px!important}
@@ -1274,35 +1283,104 @@ html{scroll-behavior:smooth}
     background:var(--accent-strong);color:var(--accent-ink);text-decoration:none}
 }
 
-/* --- Swipe hint -------------------------------------------------------
-   The document is deliberately rendered at full readable width (660px) and
-   scrolls inside its own pane. Without a cue that is just a cut-off page,
-   so say so plainly and fade the right edge to signal more content. */
-.swipe-hint{display:none}
-@media(max-width:820px){
-  .swipe-hint{
-    display:flex;align-items:center;gap:7px;
-    margin:0 0 8px;padding:7px 11px;
-    background:var(--accent-soft);color:var(--accent-strong);
-    border-radius:999px;font-size:.76rem;font-weight:650;line-height:1.3}
-  .swipe-hint-arrow{font-size:.95rem;line-height:1}
-  /* Right-edge fade: a visual "there is more this way". */
-  .gen-preview-wrap .doc-scroll{position:relative}
-  .gen-preview-wrap{position:relative}
-  .gen-preview-wrap::after{
-    content:"";position:absolute;top:0;right:0;width:26px;height:100%;
-    pointer-events:none;border-radius:0 var(--radius-lg) var(--radius-lg) 0;
-    background:linear-gradient(to right,transparent,var(--bg-2));
-    opacity:.85;z-index:2}
-  body.doc-fs .gen-preview-wrap::after{display:none}
-}
 
 /* --- Dark theme corrections ------------------------------------------
    Rules that hardcoded a light surface now follow the token, so they flip
    with the theme instead of staying white on a dark page. */
-[data-theme="dark"] .swipe-hint{background:var(--accent-soft);color:var(--brand)}
 [data-theme="dark"] .gen-form .field-card{background:var(--surface);border-color:var(--rule)}
 [data-theme="dark"] .doc-options{background:var(--surface);border-color:var(--rule)}
 [data-theme="dark"] .feature-list .card h3{border-top-color:var(--ink-1)}
 [data-theme="dark"] .trust-band strong{color:var(--ink-1)}
 [data-theme="dark"] .sibling strong{color:var(--ink-1)!important}
+
+/* ==========================================================================
+   V60 — mobile information architecture + dark-theme cascade fix
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. MOBILE ORDER
+   Desktop reads: controls, document, actions. Mobile mirrors the same logic
+   but leads with the document so the user sees the thing they are making,
+   with a primary call to action directly above it.
+        1  Build Document   (jump to the controls)
+        2  the document     (reflows, vertical scroll only)
+        3  download / share (directly under the document, as on desktop)
+        4  the controls
+   -------------------------------------------------------------------------- */
+@media(max-width:820px){
+  .gen-grid{display:flex;flex-direction:column;gap:14px}
+  .jump-controls  {order:1}
+  .gen-preview-wrap{order:2}
+  .gen-actions-bar {order:3}
+  .gen-form        {order:4}
+  .history-panel   {order:5}
+}
+
+/* --- Build Document: the primary action, full width, thumb-sized --------- */
+.jump-controls{display:none}
+@media(max-width:820px){
+  .jump-controls{
+    display:inline-flex;align-items:center;justify-content:center;gap:9px;
+    width:100%;min-height:52px;margin:0;
+    background:var(--accent);color:var(--accent-ink);
+    border-radius:var(--radius-sm);font-weight:700;font-size:1rem;
+    letter-spacing:-.01em;text-decoration:none;
+    box-shadow:0 1px 2px rgba(16,32,63,.12),0 6px 16px rgba(42,86,214,.22)}
+  .jump-controls:hover,.jump-controls:focus-visible{
+    background:var(--accent-strong);color:var(--accent-ink);text-decoration:none}
+  .jump-controls:active{transform:translateY(1px)}
+}
+
+/* --- Action bar: one primary, five secondary ----------------------------
+   Desktop puts six buttons in a row. On a 390px screen that is ~55px each,
+   below the 44px touch floor once padding is counted. So: Download PDF takes
+   the full width as the primary action, the rest sit in a 3-up grid. */
+@media(max-width:820px){
+  .gen-actions-bar .gen-actions{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:10px}
+  .gen-actions-bar .gen-actions #genDownload{
+    grid-column:1/-1;min-height:52px;font-size:1rem}
+  .gen-actions-bar .gen-actions .btn.secondary{min-height:46px;font-size:.88rem;padding:10px 8px}
+  .gen-actions-bar .gen-actions #genUses{
+    grid-column:1/-1;text-align:center;font-size:.8rem;margin:2px 0 0}
+}
+
+/* --- Reflowed document: keep the stacked line items legible -------------- */
+@media(max-width:820px){
+  .gen-preview-wrap .doc table,.gen-preview-wrap .doc .mobile-table{
+    width:100%!important;min-width:0!important;overflow:visible!important}
+  .gen-preview-wrap .doc-items th,.gen-preview-wrap .doc-items td{
+    padding:8px 6px!important;font-size:13px!important}
+  .gen-preview-wrap .doc .ed{min-height:30px}
+  /* Full screen restores the true two-dimensional layout on purpose. */
+  body.doc-fs .gen-preview-wrap .doc table{min-width:600px!important}
+}
+
+/* --------------------------------------------------------------------------
+   2. DARK THEME — cascade fix
+   The V41 premium pass added a SECOND :root block (line ~896) defining
+   --ink-1/2/3, --rule, --surface, --surface-2, --accent-ink and the shadows.
+   :root and [data-theme="dark"] have identical specificity (0,1,0), so the
+   later :root won and the dark values never applied — --ink-1 stayed #0b1220,
+   the same colour as the dark --bg, which is why every heading was invisible.
+   This block fixes it twice over: it sits AFTER the :root block, and
+   html[data-theme="dark"] is (0,1,1), which outranks :root regardless.
+   -------------------------------------------------------------------------- */
+html[data-theme="dark"]{
+  --ink-1:#f2f6fd;            /* headings          17.28:1 on --bg */
+  --ink-2:#c9d4e8;            /* body text         12.31:1 on --bg */
+  --ink-3:#9aa8c4;            /* meta text          7.82:1 on --bg */
+  --rule:#26324a;
+  --surface:#141d30;
+  --surface-2:#0f1828;
+  --accent-ink:#ffffff;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.45);
+  --shadow-md:0 2px 4px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.42);
+}
+/* Surfaces that were hardcoded light now follow the token. */
+html[data-theme="dark"] .gen-form .field-card,
+html[data-theme="dark"] .doc-options{background:var(--surface);border-color:var(--rule)}
+html[data-theme="dark"] .feature-list .card h3{border-top-color:var(--ink-1)}
+html[data-theme="dark"] .trust-band strong,
+html[data-theme="dark"] .sibling strong{color:var(--ink-1)!important}
+html[data-theme="dark"] .landing-sections .card{background:none}

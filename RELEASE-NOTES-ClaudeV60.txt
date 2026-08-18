@@ -1,0 +1,123 @@
+InvoiceGeneratorNow ClaudeV60
+
+Dark theme actually fixed this time, and the mobile document rebuilt to
+accessibility best practice.
+
+
+The dark theme: why V59 changed nothing
+- V59 added dark values for the missing tokens and I told you it was fixed. It
+  was not. I put the fix in a place where it could never win, and I did not
+  check the result before shipping it. That was my error, not a new bug.
+- The stylesheet has TWO :root blocks. The original at line 2, and a second one
+  added by the V41 premium pass at line 896 which introduced --ink-1, --ink-2,
+  --ink-3, --rule, --surface, --surface-2, --accent-ink and two shadows.
+- [data-theme="dark"] sits at line 14. Both :root and [data-theme="dark"] have
+  a specificity of (0,1,0). When specificity ties, the later rule in the file
+  wins. Line 896 beats line 14, in both themes, unconditionally.
+- So --ink-1 resolved to #0b1220 in dark mode. The dark page background --bg is
+  also #0b1220. Headings were painted in precisely the colour behind them.
+- Worth naming: --ink-2 and --accent-ink were in the same trap, and had been
+  since V41. Body text and button ink were broken in dark mode before I ever
+  touched this file.
+
+The fix, and the proof
+- The dark tokens now live in a block at the END of the stylesheet, after the
+  V41 :root, and use the selector html[data-theme="dark"], which is (0,1,1).
+  That beats :root on specificity as well as on source order, so it cannot be
+  overridden by position again.
+- Rather than assert this works, the cascade was resolved the way a browser
+  resolves it (every token-defining block in source order, highest specificity
+  wins, ties broken by position) and the final computed value printed:
+
+      token          value      won by                    contrast vs --bg
+      --ink-1        #f2f6fd    html[data-theme="dark"]        17.28:1
+      --ink-2        #c9d4e8    html[data-theme="dark"]        12.54:1
+      --ink-3        #9aa8c4    html[data-theme="dark"]         7.82:1
+      --ink          #eaf0fb    [data-theme="dark"]            16.37:1
+      --muted        #93a1bd    [data-theme="dark"]             7.20:1
+      --accent-ink   #ffffff    html[data-theme="dark"]        18.72:1
+
+  Every text token clears WCAG AA (4.5:1) and all but --muted and --ink-3 clear
+  AAA (7.0:1); those two are meta text and clear AAA as well. Light mode is
+  unchanged: --ink-1 still resolves to #0b1220.
+- Six rules that hardcoded a light surface now read the token, so the form
+  cards, options panel, trust band and related links stop rendering white on a
+  dark page.
+
+
+The mobile document: scrolling, and why the previous approach was wrong
+- You asked what the best practice is. It is unambiguous. WCAG 1.4.10 Reflow,
+  a Level AA criterion, requires content to be presented without scrolling in
+  two dimensions at a 320px viewport, except for the parts that genuinely need
+  a two-dimensional layout. Level AA is the compliance standard under Section
+  508, EN 301 549 and the European Accessibility Act.
+- There is an exception for data tables, but it is scoped to the table itself.
+  The page around it must still reflow.
+- V58 set the whole document to min-width:660px. Not just the line-item table:
+  the from and bill-to blocks, addresses, dates, notes and totals as well.
+  Those are plain text and get no exemption, so the document failed 1.4.10,
+  and in practice it clipped the left edge, which is what you photographed.
+- Horizontal scrolling while reading is also simply bad: the eye reads to the
+  right edge, scrolls back left to find the next line, and repeats. It is
+  worst for users with motor impairments, for whom precise sideways scrolling
+  is genuinely difficult.
+- The stylesheet already contained the correct solution. Rules around line 570
+  stack the invoice table so description, quantity, unit price and amount each
+  get their own row. V58's min-width:660px overrode all of it, so the reflow
+  that had been written for this never ran.
+
+What changed
+- The inline document now reflows to the viewport. min-width is 0, width is
+  100%, the line-item table stacks, and text stays at 13.5px, which is bigger
+  than the 13px it had at 660px. Vertical scrolling only. Nothing is cut off.
+- Full screen becomes the print-accurate check: the real 660px layout, with
+  pinch-zoom and two-dimensional scrolling. This is the scoped exception and
+  it is deliberately opt-in, so a user can confirm what the customer receives
+  before downloading. Two surfaces, one job each.
+- The swipe hint from V59 is removed, along with its CSS. A hint explaining an
+  awkward interaction is a worse fix than removing the awkwardness.
+
+
+Mobile layout
+- The controls were previously below the whole document, which is why the
+  document type selector looked like it did not exist. The order is now:
+
+      1  Build Document      primary button, above the document
+      2  the document        reflowed, vertical scroll only
+      3  download and share  directly under the document, as on desktop
+      4  the controls        document type, language, currency, line items
+
+- "Build Document" replaces "Edit details" and sits above the document rather
+  than below it. Full width, 52px tall, and it jumps straight to the controls.
+  It is a plain anchor with smooth scrolling and a scroll margin so the target
+  does not land under the sticky header, and it is disabled automatically for
+  anyone who has asked for reduced motion. No JavaScript.
+- The action row does NOT copy the desktop single row. Six buttons across a
+  390px screen is roughly 55px each, which drops below the 44px touch target
+  floor once padding is counted. Download PDF therefore takes the full width
+  as the primary action at 52px, and the other five sit in a 3-up grid at
+  46px. Thumb reach beats visual symmetry on a phone.
+- Desktop layout is untouched.
+
+
+Packaging
+- Asset cache-buster bumped from v59 to v60.
+
+
+Test results
+  PHP syntax lint, 60 files            pass
+  Undefined function scan              0 found
+  Page execution, 42 web-facing pages  42 pass, 0 fatal
+  Homepage render                      64,556 bytes valid HTML, 0 warnings
+  Dark token cascade resolution        all text tokens win, all clear WCAG AA
+  Inline document min-width            0 (reflows)
+  Full-screen document min-width       660px (scoped 2D exception)
+  Swipe hint markup and CSS            removed
+  CSS brace balance                    821 / 821
+  CSS comment balance                  160 / 160
+
+Not covered: the cascade and contrast figures above are computed, not observed
+in a browser, and layout is verified as correct CSS rather than rendered on a
+device. Two things worth a look on your phone: that the line items stack into
+labelled rows rather than running off the right edge, and that Full screen
+still gives you the true wide layout.
