@@ -1,0 +1,83 @@
+InvoiceGeneratorNow ClaudeV59
+
+Dark theme readability, and mobile wayfinding on the generator.
+
+
+The dark theme, properly diagnosed
+- The heading on every page was invisible in dark mode. Not low contrast,
+  not faint: gone.
+- The cause was a second :root block added by the V41 premium pass. It
+  introduced a new set of tokens (--ink-1, --ink-3, --rule, --surface,
+  --surface-2, --shadow-sm, --shadow-md) and rewrote h1, h2 and h3 to use
+  --ink-1. But the [data-theme="dark"] block predates V41 and was never
+  updated, so none of those seven tokens had a dark value.
+- In dark mode --ink-1 therefore stayed at its light value of #0b1220, and
+  the dark page background --bg is also #0b1220. The headings were being
+  painted in exactly the same colour as the surface behind them. Measured
+  contrast: 1.00 to 1.
+- Five other things broke the same way. --rule stayed at #e8ecf3, so borders
+  drew as near-white lines on a dark page. --surface stayed at #ffffff, which
+  is why the Document and Document-language card rendered as a white box in
+  an otherwise dark layout. --ink-3 left meta text below the contrast floor.
+
+What changed
+- All seven missing tokens now have dark values in the [data-theme="dark"]
+  block, so they flip with the theme like every other token.
+- Measured after the fix:
+    headings   --ink-1 #f2f6fd on #0b1220   17.28 to 1   (WCAG AAA needs 7.0)
+    meta text  --ink-3 #9aa8c4 on #0b1220    7.82 to 1   (WCAG AA  needs 4.5)
+- Six rules that assumed a light surface now follow the token instead, so the
+  form cards, the options panel and the trust band stop staying white.
+- Verified: no colour token used anywhere in the stylesheet is now missing a
+  dark-mode value.
+
+
+Mobile: finding the document controls
+- On a phone the Document type and Document language selectors looked like
+  they did not exist. They did, but they were below the entire invoice
+  preview, because the mobile layout sets the preview to order 1 and the whole
+  form to order 2. On desktop the controls sit above the document, which is
+  why it only looked broken on mobile.
+- Per your decision the document stays first. There is now a full-width
+  "Edit details" button directly under the preview that jumps straight to the
+  controls, so it is one tap rather than a long scroll.
+- The jump is a plain anchor with smooth scrolling and a scroll margin so the
+  target does not land under the sticky header. It is disabled automatically
+  for anyone who has asked for reduced motion. No JavaScript involved.
+- The button is mobile only. Desktop already shows the controls above the
+  document and does not need it.
+
+
+Mobile: the sideways scroll
+- The document is deliberately rendered at 660px on mobile rather than being
+  shrunk to fit. That decision is unchanged, and it is the right one: the
+  earlier approach scaled the text to roughly 9px and made the document
+  impossible to edit on a phone.
+- The problem was that nothing told you the document scrolled. A page cut off
+  at the right edge with no cue just reads as broken.
+- There is now a short hint pill above the document saying the document
+  swipes sideways, and a soft fade on the right edge of the pane as a visual
+  signal that there is more content that way. The fade is suppressed in full
+  screen, where nothing is cut off.
+
+
+Packaging
+- Asset cache-buster bumped from v58 to v59. Without this the browser serves
+  the cached stylesheet and none of the above appears.
+
+
+Test results
+  PHP syntax lint, 60 files            pass
+  Undefined function scan              0 found
+  Page execution, 42 web-facing pages  42 pass, 0 fatal
+  Homepage render                      64,648 bytes valid HTML, 0 warnings
+  New markup present in output         docControls, jump-controls, swipe-hint
+  CSS brace balance                    801 / 801
+  CSS comment balance                  150 / 150
+  Dark colour tokens missing           none
+
+Not covered: as with V58, the mobile behaviour is verified as correct CSS and
+markup but was not opened in a real browser at real device widths. The two
+things worth checking on your phone are that the Edit details button lands you
+on the Document dropdown, and that the swipe hint reads sensibly above the
+document.

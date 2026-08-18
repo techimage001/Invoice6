@@ -16,7 +16,7 @@ page_header('Invoice generator',false,'Invoice generator: create a professional 
     <div id="historyList" class="history-list"></div>
   </details>
   <form class="gen-form" onsubmit="return false" novalidate>
-    <div class="field-card doc-controls">
+    <div class="field-card doc-controls" id="docControls">
       <div class="form-grid">
         <div class="full"><label for="g_doctype">Document</label>
           <select id="g_doctype">
@@ -172,8 +172,9 @@ page_header('Invoice generator',false,'Invoice generator: create a professional 
       <button type="button" data-template="mono" class="tmpl-chip">Black &amp; White</button>
     </div>
     <div class="preview-head"><div class="live-badge">Live preview &#183; updates as you type</div><button type="button" id="previewExpand" class="btn secondary small" aria-expanded="false">Full screen</button></div>
-    <button type="button" id="previewClose" class="preview-close" aria-label="Close full screen preview">&#10005; Close</button><article class="doc" id="invPreview" aria-live="polite" role="region" aria-label="Live document preview"></article>
+    <p class="swipe-hint" aria-hidden="true"><span class="swipe-hint-arrow">&#8596;</span> Swipe the document sideways to see every column</p><button type="button" id="previewClose" class="preview-close" aria-label="Close full screen preview">&#10005; Close</button><article class="doc" id="invPreview" aria-live="polite" role="region" aria-label="Live document preview"></article>
     <p class="muted gen-privacy">Your invoice is built in your browser. Nothing is sent to us.</p>
+    <a class="jump-controls" href="#docControls">Edit details &#8595;</a>
   </aside>
   <div class="gen-actions-bar">
     <div class="gen-actions">
