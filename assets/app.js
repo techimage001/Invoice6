@@ -98,6 +98,21 @@ const countryChoice=document.getElementById('countryChoice'),currencyChoice=docu
     'completion-certificate':{title:'COMPLETION CERTIFICATE',prefix:'CC-',due:false,to:'Customer / site',from:'From',sign:true,noPrice:true},
     'goods-received-note':{title:'GOODS RECEIVED NOTE',prefix:'GRN-',due:false,noPrice:true,to:'Supplier',from:'From',original:true,sign:true},
     'return-note':{title:'RETURN NOTE',prefix:'RN-',due:false,to:'Customer',from:'From',original:true},
+    'delivery-challan':{title:'DELIVERY CHALLAN',prefix:'DC-',due:false,to:'Consignee',from:'Consigned by',deliver:true,noPrice:true,sign:true,route:true,
+      cols:[{k:'d',l:'Description of goods',t:'text',ph:'Item description'},{k:'q',l:'Qty',t:'num'},{k:'x1',l:'Unit',t:'text',ph:'pcs'},{k:'x2',l:'Remarks',t:'text',ph:'optional'}]},
+    'remittance-advice':{title:'REMITTANCE ADVICE',prefix:'RA-',due:false,to:'To',from:'From',
+      cols:[{k:'x1',l:'Invoice date',t:'text',ph:'2026-08-01'},{k:'d',l:'Invoice number',t:'text',ph:'INV-0001'},{k:'p',l:'Invoice amount',t:'money'},{k:'x2',l:'Amount paid',t:'money'}],paidTotal:true},
+    'consignment-note':{title:'CONSIGNMENT NOTE',prefix:'CN-',due:false,to:'Receiver',from:'Sender',deliver:true,noPrice:true,sign:true,route:true,
+      cols:[{k:'d',l:'Description of goods',t:'text',ph:'Contents'},{k:'q',l:'Packages',t:'num'},{k:'x1',l:'Weight',t:'text',ph:'12 kg'},{k:'x2',l:'Dimensions',t:'text',ph:'40x30x20 cm'}]},
+    'payment-voucher':{title:'PAYMENT VOUCHER',prefix:'PV-',due:false,to:'Paid to',from:'Paid by',sign:true,
+      cols:[{k:'d',l:'Particulars',t:'text',ph:'What the payment is for'},{k:'x1',l:'Account / code',t:'text',ph:'optional'},{k:'p',l:'Amount',t:'money'}],qtyOne:true},
+    'cash-receipt':{title:'CASH RECEIPT',prefix:'CR-',due:false,to:'Received from',from:'From',paidLabel:true,paidDate:true},
+    'rent-invoice':{title:'RENT INVOICE',prefix:'RI-',due:true,to:'Tenant',from:'Landlord',period:true},
+    'rent-receipt':{title:'RENT RECEIPT',prefix:'RR-',due:false,to:'Received from',from:'Landlord',paidLabel:true,paidDate:true,period:true},
+    'job-sheet':{title:'JOB SHEET',prefix:'JS-',due:false,to:'Customer / site',from:'From',sign:true,noPrice:true,
+      cols:[{k:'x1',l:'Date',t:'text',ph:'2026-08-01'},{k:'d',l:'Work carried out',t:'text',ph:'Describe the work'},{k:'q',l:'Hours',t:'num'},{k:'x2',l:'Parts used',t:'text',ph:'optional'}]},
+    'retainer-invoice':{title:'RETAINER INVOICE',prefix:'RET-',due:true,to:'Bill to',from:'From',period:true},
+    'refund-note':{title:'REFUND NOTE',prefix:'RFN-',due:false,to:'Refund to',from:'From',original:true},
     'waybill':{title:'WAYBILL',prefix:'WB-',due:false,deliver:true,noPrice:true,to:'Receiver',from:'Sender',sign:true,cols:[{k:'d',l:'Description of goods',t:'text',ph:'Contents'},{k:'q',l:'Packages',t:'num'},{k:'x1',l:'Weight',t:'text',ph:'12 kg'},{k:'x2',l:'Dimensions',t:'text',ph:'40x30x20 cm'}],route:true}
   };
   /* Document-label translations (labels on the generated document only) */
