@@ -667,8 +667,36 @@ const countryChoice=document.getElementById('countryChoice'),currencyChoice=docu
   }
 
   const modal=$('gateModal');
-  function showGate(){ if(!modal)return; modal.hidden=false; modal.classList.add('is-open'); document.body.style.overflow='hidden'; }
+  const GATE_TITLE_LIMIT='Verify your email to keep going';
+  const GATE_INTRO_LIMIT='You have used your free documents on this browser. Enter your email and we send a private verification link. Opening it unlocks unlimited use here. Nothing is charged and no card details are requested.';
+  function showGate(){
+    if(!modal)return;
+    // Always restore the limit wording first. Otherwise, once someone had opened
+    // the panel voluntarily from the header, hitting the actual limit later would
+    // still show the voluntary copy and never tell them they had run out.
+    const t=$('gateTitle'), b=$('gateIntro');
+    if(t) t.textContent=GATE_TITLE_LIMIT;
+    if(b) b.textContent=GATE_INTRO_LIMIT;
+    modal.hidden=false; modal.classList.add('is-open'); document.body.style.overflow='hidden';
+  }
   function hideGate(){ if(!modal)return; modal.hidden=true; modal.classList.remove('is-open'); document.body.style.overflow=''; }
+  // The header "Sign up" link previously pointed at /#invgen, which merely
+  // scrolled to the builder. register.php and login.php are both 302s back to
+  // the same anchor, so there was no signup form anywhere on the site: the only
+  // one lives inside this panel and appeared only after the free limit. The
+  // button now opens that panel on demand, using the same verified-email flow.
+  document.addEventListener('click',function(e){
+    const t=e.target.closest && e.target.closest('[data-open-gate]');
+    if(!t) return;
+    e.preventDefault();
+    // Opened deliberately rather than because the limit was hit, so the copy
+    // must not claim they have run out of free documents.
+    showGate();
+    const title=$('gateTitle'), body=$('gateIntro');
+    if(title) title.textContent='Verify your email to unlock unlimited use';
+    if(body)  body.textContent='Enter your email and we send a private verification link. Opening it unlocks unlimited documents on this browser. Nothing is charged and no card details are requested.';
+    const f=$('signupEmail'); if(f) setTimeout(function(){try{f.focus();}catch(err){}},60);
+  });
   if($('gateClose')) $('gateClose').addEventListener('click',hideGate);
   if(modal) modal.addEventListener('click',e=>{if(e.target===modal)hideGate();});
 

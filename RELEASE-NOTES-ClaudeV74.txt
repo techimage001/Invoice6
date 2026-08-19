@@ -1,0 +1,82 @@
+InvoiceGeneratorNow ClaudeV74
+
+The header Sign up button: two separate faults, both real.
+
+
+Fault 1: it vanished under the cursor
+- Hovering the button turned it invisible rather than highlighting it.
+- Cause is a specificity collision. The header rule
+      .top nav a:hover { color:var(--ink); background:var(--bg-2) }
+  scores (0,2,2), while the button rule
+      .btn:hover { background:var(--accent-strong) }
+  scores (0,2,0). The header rule wins, so on hover the button lost its accent
+  fill and took var(--bg-2), a near-white panel.
+- At the same time .btn keeps colour:var(--accent-ink) forced with !important,
+  so the text stayed white. White on #eef2f9 measures 1.12 to 1. The button was
+  still there and still clickable; it simply could not be seen.
+- Fixed by restating the button's own colours at a specificity that wins,
+      .top nav a.btn:hover  (0,3,2)
+  rather than by weakening the nav rule that every other header link relies on.
+- Measured: hover contrast goes from 1.12 to 1 up to 8.07 to 1.
+
+Fault 2: it did not do anything
+- The button linked to /#invgen, which only scrolls to the builder. No signup
+  form exists there.
+- register.php and login.php both turned out to be 302 redirects back to that
+  same anchor, so there was no signup page anywhere on the site.
+- The only signup form in the entire application sits inside the gate panel,
+  and that panel appeared solely when someone hit the free-document limit.
+  Anyone who wanted to verify their email BEFORE running out had no route to
+  do it, and the header invited them to try.
+- The button now opens that same panel on demand. Same form, same
+  /api/subscribe.php, same verification link, same /api/status.php unlock. No
+  new page, no new endpoint, no change to the email flow itself.
+- The email field takes focus when the panel opens.
+
+The copy problem this created, and its fix
+- The panel's wording is written for the limit case: "You have used your free
+  documents on this browser." Shown to someone who has used none, that is
+  simply untrue.
+- Opening it from the header now shows "Verify your email to unlock unlimited
+  use" with matching body copy.
+- More importantly, showGate() now RESTORES the limit wording every time it
+  opens. Without that, once a visitor had opened the panel voluntarily, later
+  hitting the real limit would have kept showing the voluntary copy and never
+  told them they had run out.
+- Verified both directions: voluntary open shows the unlock copy; a subsequent
+  limit-triggered open reverts to the limit copy.
+
+Email authentication untouched
+  api/subscribe.php   present
+  api/status.php      present
+  api/verify.php      present
+  api/logout.php      present
+  signupForm id       unchanged
+  honeypot field      intact
+  timing field        intact
+- signup.js was not modified. It still posts to /api/subscribe.php and reads
+  /api/status.php, and works on any page containing #signupForm, which now
+  includes the panel opened from the header.
+
+Everything else as is
+  V73 accent document boxes    13 rules present
+  V72 receipt payment date     present
+  V71 due-date presets removed 3 of 3 files clean
+  V69 document layouts         7 custom
+  V67 deep-link fix            present
+  V66 date-overlay guards      4 of 4
+
+Test results
+  PHP syntax lint, 60 files             pass
+  app.js syntax check                   pass
+  Undefined function scan               0 found
+  Page execution, 42 web-facing pages   42 pass, 0 fatal
+  Sign up opens the panel               confirmed in DOM test
+  Anchor navigation suppressed          confirmed
+  Copy reverts on the limit path        confirmed
+  Hover contrast                        8.07:1 (was 1.12:1)
+  CSS brace balance                     903 / 903
+
+Packaging
+- Asset cache-buster bumped from v73 to v74. index.php, app.js, style.css and
+  bootstrap.php changed.

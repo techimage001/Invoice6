@@ -228,7 +228,7 @@ page_header('Invoice generator',false,'Invoice generator: create a professional 
   <div class="gate-card">
     <button type="button" id="gateClose" class="gate-close" aria-label="Close">&#10005;</button>
     <h2 id="gateTitle">Verify your email to keep going</h2>
-    <p class="muted">You have used your free documents on this browser. Enter your email and we send a private verification link. Opening it unlocks unlimited use here. Nothing is charged and no card details are requested.</p>
+    <p class="muted" id="gateIntro">You have used your free documents on this browser. Enter your email and we send a private verification link. Opening it unlocks unlimited use here. Nothing is charged and no card details are requested.</p>
     <form id="signupForm" class="form">
       <input type="text" name="company" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px">
       <input type="hidden" id="signupStarted" value="<?=(int)round(microtime(true)*1000)?>">

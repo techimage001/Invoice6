@@ -1646,3 +1646,24 @@ html[data-theme="dark"] .gen-form .field-card.doc-controls small.muted{color:var
   .gen-form .field-card.doc-controls,
   .gen-form > .doc-options{border-width:1.5px}
 }
+
+
+/* ==========================================================================
+   V74 — the header Sign up button
+   .top nav a:hover (0,2,2) outranks .btn:hover (0,2,0), so hovering the nav
+   CTA replaced its accent background with var(--bg-2) - a near-white panel -
+   while .btn keeps colour:var(--accent-ink) forced with !important. White text
+   on #eef2f9 measures 1.12:1, which is why the button vanished under the
+   cursor. Restated here at a specificity that wins, rather than by weakening
+   the nav rule other links depend on.
+   ========================================================================== */
+.top nav a.btn,
+.top nav a.btn:hover,
+.top nav a.btn:focus-visible{
+  background:var(--accent);
+  color:var(--accent-ink)!important}
+.top nav a.btn:hover{background:var(--accent-strong)}
+.top nav a.btn:focus-visible{outline:none;box-shadow:var(--ring)}
+
+html[data-theme="dark"] .top nav a.btn,
+html[data-theme="dark"] .top nav a.btn:hover{color:var(--accent-ink)!important}
