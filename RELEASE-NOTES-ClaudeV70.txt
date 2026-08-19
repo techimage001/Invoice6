@@ -1,0 +1,60 @@
+InvoiceGeneratorNow ClaudeV70
+
+Both dates default to today, and a timezone fault found while making that
+change.
+
+
+Dates now default to today
+- The issue date already defaulted to today. The due date defaulted to today
+  plus 14 days, which quietly decided payment terms on the user's behalf
+  before they had entered anything at all. Terms vary by trade and by client,
+  so the app should not assume.
+- Both now default to the current date. From there either can be changed
+  freely, by the picker or by typing, with no restriction: neither field
+  carries a minimum or maximum, so any date past or future is available.
+- This flows through everywhere the defaults are used, because they all read
+  the same two values:
+      the initial page load
+      the Reset button
+      Duplicate, which gives a copy fresh dates and a fresh number
+- The On receipt / 7 / 14 / 30 day presets are unchanged and still calculate
+  from the issue date rather than from today, so back-dating an invoice and
+  then tapping 30 days still produces correct terms. Anyone who wants a
+  fortnight is one tap away; the difference is that the app no longer chooses
+  it for them.
+- Note for quotes, estimates and proforma invoices: those relabel the same
+  field as "Valid until", so it now defaults to today as well. That follows
+  from the same rule, and the presets or the picker set it in one action.
+
+The timezone fault this surfaced
+- The date helper built its value with toISOString(), which returns the UTC
+  calendar date, not the local one. For anyone east of Greenwich in the
+  morning, "today" resolved to yesterday.
+- Same instant, 22:30 UTC:
+      Glenrothes  UTC+1   local 18 Aug 23:30   app showed 18 Aug   correct
+      New York    UTC-4   local 18 Aug 18:30   app showed 18 Aug   correct
+      Tokyo       UTC+9   local 19 Aug 07:30   app showed 18 Aug   WRONG
+      Sydney      UTC+10  local 19 Aug 08:30   app showed 18 Aug   WRONG
+      Auckland    UTC+12  local 19 Aug 10:30   app showed 18 Aug   WRONG
+- For an app covering 250 countries that is routine, not an edge case: a
+  Sydney user opening it during the working morning would have got yesterday's
+  date on every document.
+- The helper now builds the date from local calendar components, so it matches
+  the date on the user's own device wherever they are.
+
+Nothing else changed
+- Verified intact: the seven document-specific layouts and nineteen unchanged
+  documents from V69, the date-overlay guards from V66 (4 of 4), the deep-link
+  ordering fix from V67, and the indefinite-article fix from V68.
+
+Test results
+  PHP syntax lint, 60 files             pass
+  app.js syntax check                   pass
+  Undefined function scan               0 found
+  Page execution, 42 web-facing pages   42 pass, 0 fatal
+  Issue and due default to same date    confirmed
+  min/max on either date                none, both fully editable
+  Custom-layout documents               7 | unchanged 19
+
+Packaging
+- Asset cache-buster bumped from v69 to v70. app.js changed.

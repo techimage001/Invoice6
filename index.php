@@ -126,6 +126,16 @@ page_header('Invoice generator',false,'Invoice generator: create a professional 
             <button type="button" class="due-chip" data-days="30">30 days</button>
           </div>
         </div>
+        <div data-role="figure-amount" hidden><label for="g_balamt">Balance owed</label><input id="g_balamt" type="number" step="0.01" min="0" placeholder="0.00"></div>
+        <div data-role="figure-amtdue" hidden><label for="g_amtdue">Amount outstanding</label><input id="g_amtdue" type="number" step="0.01" min="0" placeholder="0.00"></div>
+        <div data-role="figure-asat" hidden><label for="g_asat">As at date</label><input id="g_asat" type="date"></div>
+        <div data-role="figure-origdue" hidden><label for="g_origdue">Originally due</label><input id="g_origdue" type="date"></div>
+        <div data-role="opening-field" hidden><label for="g_openbal">Opening balance</label><input id="g_openbal" type="number" step="0.01" placeholder="0.00"></div>
+        <div data-role="period-field" hidden><label for="g_period">Period covered</label><input id="g_period" placeholder="1 - 31 August 2026"></div>
+        <div data-role="route-origin" hidden><label for="g_origin">Origin</label><input id="g_origin" placeholder="Country or city of origin"></div>
+        <div data-role="route-dest" hidden><label for="g_destination">Destination</label><input id="g_destination" placeholder="Country or city of destination"></div>
+        <div data-role="route-carrier" hidden><label for="g_carrier">Carrier</label><input id="g_carrier" placeholder="Carrier name"></div>
+        <div data-role="incoterms-field" hidden><label for="g_incoterms">Incoterms</label><input id="g_incoterms" placeholder="e.g. DAP, FOB, CIF"></div>
         <div class="adv-only" data-role="po-field"><label>Purchase order / reference</label><input id="g_po" placeholder="PO or reference"></div>
         <div class="adv-only" data-role="terms-field"><label>Payment terms</label>
           <select id="g_terms"><option value="">None</option><option>Due on receipt</option><option>Net 7</option><option>Net 14</option><option>Net 30</option><option>Net 60</option></select>

@@ -1578,3 +1578,34 @@ body.doc-fs .gen-preview-wrap .doc .ed-date-input{display:none!important}
 
 html[data-theme="dark"] .due-chip{background:var(--surface);color:var(--brand);border-color:var(--rule)}
 html[data-theme="dark"] .due-chip.is-active{background:var(--accent);color:var(--accent-ink)}
+
+/* ==========================================================================
+   V69 — document-specific layouts
+   Balance letters and payment reminders are letters, not tables: one figure,
+   one date. Everything else keeps its existing table styling.
+   ========================================================================== */
+
+.doc-figure{
+  margin:18px 0 6px;padding:18px 20px;
+  border:1px solid var(--rule);border-radius:var(--radius);
+  background:var(--surface-2)}
+.doc-figure-row{display:flex;align-items:baseline;justify-content:space-between;gap:16px}
+.doc-figure-label{font-size:.82rem;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--ink-3)}
+.doc-figure-amount{font-size:1.9rem;font-weight:800;letter-spacing:-.02em;color:var(--ink-1)}
+.doc .ed.ed-figure{font-size:1.9rem;font-weight:800;text-align:right;min-width:5em}
+.doc-figure-meta{margin-top:8px;font-size:.85rem;color:var(--ink-3);
+  display:flex;align-items:center;gap:8px}
+.doc-figure-meta span{font-weight:650}
+
+/* Extra line-item columns only occupy space when the document uses them. */
+.li-f-x1[hidden],.li-f-x2[hidden]{display:none!important}
+
+@media(max-width:820px){
+  .doc-figure{padding:14px 15px;margin:14px 0 4px}
+  .doc-figure-row{flex-direction:column;align-items:stretch;gap:6px}
+  .doc-figure-amount,.doc .ed.ed-figure{font-size:1.5rem;text-align:left}
+  .doc .ed.ed-figure{width:100%}
+}
+
+html[data-theme="dark"] .doc-figure{background:var(--surface);border-color:var(--rule)}

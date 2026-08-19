@@ -82,23 +82,23 @@ const countryChoice=document.getElementById('countryChoice'),currencyChoice=docu
     'receipt':{title:'RECEIPT',prefix:'REC-',due:false,to:'Received from',from:'From',original:true,paidLabel:true},
     'purchase-order':{title:'PURCHASE ORDER',prefix:'PO-',due:false,deliver:true,to:'Supplier',from:'Buyer'},
     'delivery-note':{title:'DELIVERY NOTE',prefix:'DN-',due:false,deliver:true,noPrice:true,to:'Deliver to',from:'From',sign:true},
-    'statement':{title:'STATEMENT OF ACCOUNT',prefix:'ST-',due:false,to:'Account for',from:'From'},
-    'commercial-invoice':{title:'COMMERCIAL INVOICE',prefix:'CI-',due:true,deliver:true,to:'Importer',from:'Exporter',requireTax:false},
+    'statement':{title:'STATEMENT OF ACCOUNT',prefix:'ST-',due:false,to:'Account for',from:'From',cols:[{k:'x1',l:'Date',t:'text',ph:'2026-08-01'},{k:'d',l:'Description',t:'text',ph:'Invoice INV-0001'},{k:'p',l:'Charges',t:'money'},{k:'x2',l:'Payments',t:'money'},{k:'run',l:'Balance',t:'run'}],opening:true,statement:true},
+    'commercial-invoice':{title:'COMMERCIAL INVOICE',prefix:'CI-',due:true,deliver:true,to:'Importer',from:'Exporter',requireTax:false,cols:[{k:'d',l:'Description of goods',t:'text',ph:'Contents'},{k:'x1',l:'HS code',t:'text',ph:'8471.30'},{k:'x2',l:'Origin',t:'text',ph:'GB'},{k:'q',l:'Qty',t:'num'},{k:'p',l:'Unit value',t:'money'},{k:'amt',l:'Amount',t:'amt'}],route:true,incoterms:true},
     'debit-note':{title:'DEBIT NOTE',prefix:'DB-',due:false,to:'Debit to',from:'From',original:true},
     'progress-invoice':{title:'PROGRESS INVOICE',prefix:'INV-',due:true,to:'Bill to',from:'From'},
     'final-invoice':{title:'FINAL INVOICE',prefix:'INV-',due:true,to:'Bill to',from:'From'},
     'deposit-invoice':{title:'DEPOSIT INVOICE',prefix:'DEP-',due:true,to:'Bill to',from:'From',notice:'This deposit invoice requests an upfront payment. This tool does not process payments.'},
     'sales-order':{title:'SALES ORDER',prefix:'SO-',due:false,deliver:true,to:'Customer',from:'From'},
     'work-order':{title:'WORK ORDER',prefix:'WO-',due:false,deliver:true,to:'Customer / site',from:'From',sign:true},
-    'timesheet':{title:'TIMESHEET',prefix:'TS-',due:false,to:'Client / project',from:'From',sign:true},
-    'expense-report':{title:'EXPENSE REPORT',prefix:'EXP-',due:false,to:'Submitted to',from:'From',sign:true},
+    'timesheet':{title:'TIMESHEET',prefix:'TS-',due:false,to:'Client / project',from:'From',sign:true,cols:[{k:'x1',l:'Date',t:'text',ph:'2026-08-01'},{k:'d',l:'Task',t:'text',ph:'Work carried out'},{k:'q',l:'Hours',t:'num'},{k:'p',l:'Rate',t:'money'},{k:'amt',l:'Amount',t:'amt'}],period:true},
+    'expense-report':{title:'EXPENSE REPORT',prefix:'EXP-',due:false,to:'Submitted to',from:'From',sign:true,cols:[{k:'x1',l:'Date',t:'text',ph:'2026-08-01'},{k:'x2',l:'Category',t:'text',ph:'Travel'},{k:'d',l:'Description',t:'text',ph:'What was purchased'},{k:'p',l:'Amount',t:'money'}],qtyOne:true,period:true},
     'packing-slip':{title:'PACKING SLIP',prefix:'PS-',due:false,deliver:true,noPrice:true,to:'Deliver to',from:'From'},
-    'payment-reminder':{title:'PAYMENT REMINDER',prefix:'REM-',due:false,to:'To',from:'From',original:true,noItems:true},
-    'account-balance-letter':{title:'ACCOUNT BALANCE',prefix:'ABL-',due:false,to:'To',from:'From',noItems:true},
+    'payment-reminder':{title:'PAYMENT REMINDER',prefix:'REM-',due:false,to:'To',from:'From',original:true,noItems:true,figure:{amount:'g_amtdue',amountLabel:'Amount outstanding',date:'g_origdue',dateLabel:'Originally due'}},
+    'account-balance-letter':{title:'ACCOUNT BALANCE',prefix:'ABL-',due:false,to:'To',from:'From',noItems:true,figure:{amount:'g_balamt',amountLabel:'Balance owed',date:'g_asat',dateLabel:'As at'}},
     'completion-certificate':{title:'COMPLETION CERTIFICATE',prefix:'CC-',due:false,to:'Customer / site',from:'From',sign:true,noPrice:true},
     'goods-received-note':{title:'GOODS RECEIVED NOTE',prefix:'GRN-',due:false,noPrice:true,to:'Supplier',from:'From',original:true,sign:true},
     'return-note':{title:'RETURN NOTE',prefix:'RN-',due:false,to:'Customer',from:'From',original:true},
-    'waybill':{title:'WAYBILL',prefix:'WB-',due:false,deliver:true,noPrice:true,to:'Receiver',from:'Sender',sign:true}
+    'waybill':{title:'WAYBILL',prefix:'WB-',due:false,deliver:true,noPrice:true,to:'Receiver',from:'Sender',sign:true,cols:[{k:'d',l:'Description of goods',t:'text',ph:'Contents'},{k:'q',l:'Packages',t:'num'},{k:'x1',l:'Weight',t:'text',ph:'12 kg'},{k:'x2',l:'Dimensions',t:'text',ph:'40x30x20 cm'}],route:true}
   };
   /* Document-label translations (labels on the generated document only) */
   const T={
@@ -122,8 +122,16 @@ const countryChoice=document.getElementById('countryChoice'),currencyChoice=docu
   curSel.addEventListener('change',()=>setCurrency(curSel.value));
 
   // Dates default
-  const today=new Date(),due=new Date(Date.now()+14*864e5);
-  const iso=d=>d.toISOString().slice(0,10);
+  // Both dates default to today. A 14-day due date was being chosen for the
+  // user before they had entered anything; terms vary by trade and by client,
+  // so the app should not assume. The On receipt / 7 / 14 / 30 day presets are
+  // one tap away for anyone who wants an offset.
+  const today=new Date(),due=new Date();
+  // LOCAL date, not UTC. toISOString() returns the UTC calendar date, so for
+  // anyone east of Greenwich in the morning (Sydney 8am, Tokyo 7am, Auckland
+  // 10am) "today" resolved to yesterday. This app covers 250 countries, so
+  // that is a routine error rather than an edge case.
+  const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   if($('g_issue'))$('g_issue').value=iso(today);
   if($('g_due'))$('g_due').value=iso(due);
 
@@ -196,6 +204,29 @@ const countryChoice=document.getElementById('countryChoice'),currencyChoice=docu
     if(origF)origF.hidden=!d.original;
     if(reasonF)reasonF.hidden=!(val('g_doctype')==='credit-note');
     if(origF&&d.paidLabel)root.querySelector('[data-role="original-label"]').textContent='Original invoice number';
+    // Only surface the fields this document actually uses, so the Details card
+    // stays short instead of listing every field every document might want.
+    const show=(role,on)=>{const el=root.querySelector('[data-role="'+role+'"]');if(el)el.hidden=!on;};
+    show('figure-amount',  !!(d.figure&&d.figure.amount==='g_balamt'));
+    show('figure-amtdue',  !!(d.figure&&d.figure.amount==='g_amtdue'));
+    show('figure-asat',    !!(d.figure&&d.figure.date==='g_asat'));
+    show('figure-origdue', !!(d.figure&&d.figure.date==='g_origdue'));
+    show('opening-field',  !!d.opening);
+    show('period-field',   !!d.period);
+    show('route-origin',   !!d.route);
+    show('route-dest',     !!d.route);
+    show('route-carrier',  !!d.route);
+    show('incoterms-field',!!d.incoterms);
+    // Extra line columns only appear in the form when the schema uses them.
+    const usesX=k=>!!(d.cols&&d.cols.some(c=>c.k===k));
+    root.querySelectorAll('.li-f-x1').forEach(el=>{el.hidden=!usesX('x1');});
+    root.querySelectorAll('.li-f-x2').forEach(el=>{el.hidden=!usesX('x2');});
+    if(d.cols){
+      const lab=k=>{const c=d.cols.find(c=>c.k===k);return c?c.l:null;};
+      const setLab=(sel,txt)=>{if(!txt)return;root.querySelectorAll(sel+' > span').forEach(sp=>{sp.textContent=txt;});};
+      setLab('.li-f-desc',lab('d')); setLab('.li-f-qty',lab('q'));
+      setLab('.li-f-price',lab('p')); setLab('.li-f-x1',lab('x1')); setLab('.li-f-x2',lab('x2'));
+    }
     const sig=$('g_showsig');
     if(sig&&!sig.dataset.touched){sig.checked=!!d.sign;}
     render();
@@ -204,12 +235,13 @@ const countryChoice=document.getElementById('countryChoice'),currencyChoice=docu
   $('g_doctype').addEventListener('change',applyDoc);
   $('g_doclang').addEventListener('change',render);
 
-  // Preselect doc from ?doc= (SEO deep links)
-  try{const p=new URLSearchParams(location.search).get('doc');if(p&&DOCS[p]){$('g_doctype').value=p;}}catch(e){}
+  // NOTE: the ?doc= deep link used to be applied here. That was too early:
+  // restoreDraft() runs later and rewrites every field, g_doctype included, so
+  // the draft always won and the link was ignored. It now runs after the draft.
 
   // Line items
   const items=$('genItems');
-  const rowInner='<label class="li-f li-f-desc"><span>Description</span><input class="li-desc" placeholder="Description of work or item"></label><label class="li-f li-f-qty"><span>Qty</span><input class="li-qty" type="number" step="0.01" min="0" value="1" aria-label="Quantity"></label><label class="li-f li-f-price"><span>Unit price</span><input class="li-price" type="number" step="0.01" min="0" placeholder="0.00" aria-label="Unit price"></label><label class="li-f li-f-tax"><span>Tax %</span><input class="li-tax" type="number" step="0.01" min="0" placeholder="" aria-label="Line tax percent"></label><span class="li-total" aria-hidden="true">\u2014</span><button type="button" class="li-remove" aria-label="Remove line">\u2715</button>';
+  const rowInner='<label class="li-f li-f-desc"><span>Description</span><input class="li-desc" placeholder="Description of work or item"></label><label class="li-f li-f-qty"><span>Qty</span><input class="li-qty" type="number" step="0.01" min="0" value="1" aria-label="Quantity"></label><label class="li-f li-f-price"><span>Unit price</span><input class="li-price" type="number" step="0.01" min="0" placeholder="0.00" aria-label="Unit price"></label><label class="li-f li-f-tax"><span>Tax %</span><input class="li-tax" type="number" step="0.01" min="0" placeholder="" aria-label="Line tax percent"></label><label class="li-f li-f-x1 li-x-slot"><span>Extra 1</span><input class="li-x1" aria-label="Extra column 1"></label><label class="li-f li-f-x2 li-x-slot"><span>Extra 2</span><input class="li-x2" aria-label="Extra column 2"></label><span class="li-total" aria-hidden="true">\u2014</span><button type="button" class="li-remove" aria-label="Remove line">\u2715</button>';
   $('genAddLine').addEventListener('click',()=>{const d=document.createElement('div');d.className='line-item';d.innerHTML=rowInner;items.appendChild(d);render();});
   root.addEventListener('click',e=>{const rm=e.target.closest('.li-remove'); if(!rm) return; const rows=items.querySelectorAll('.line-item'); if(rows.length>1){const node=rm.closest('.line-item');lastRemoved={node:node,index:Array.prototype.indexOf.call(items.children,node)};node.remove();showUndo();} else rm.closest('.line-item').querySelectorAll('input').forEach(i=>{i.value=i.classList.contains('li-qty')?'1':'';}); render();});
 
@@ -320,33 +352,92 @@ const countryChoice=document.getElementById('countryChoice'),currencyChoice=docu
     html+='<br><strong>'+tr('po')+':</strong> '+ed('g_po',val('g_po').trim(),'optional');
     if(d.original&&val('g_original').trim()) html+='<br><strong>Ref invoice:</strong> '+esc(val('g_original').trim());
     if(val('g_doctype')==='credit-note'&&val('g_reason').trim()) html+='<br><strong>Reason:</strong> '+esc(val('g_reason').trim());
+    if(d.period&&val('g_period').trim()) html+='<br><strong>Period:</strong> '+esc(val('g_period').trim());
+    if(d.route){
+      if(val('g_origin').trim())      html+='<br><strong>Origin:</strong> '+esc(val('g_origin').trim());
+      if(val('g_destination').trim()) html+='<br><strong>Destination:</strong> '+esc(val('g_destination').trim());
+      if(val('g_carrier').trim())     html+='<br><strong>Carrier:</strong> '+esc(val('g_carrier').trim());
+    }
+    if(d.incoterms&&val('g_incoterms').trim()) html+='<br><strong>Incoterms:</strong> '+esc(val('g_incoterms').trim());
     if(val('g_status')) html+='<br><strong>'+tr('status')+':</strong> '+esc(val('g_status'));
     html+='</div></div>';
 
     const showPrice=!d.noPrice;
     if(!d.noItems){
-    // Line items are edited directly in the table, with add and remove inline.
+    // Line items are edited directly in the table. The COLUMNS come from the
+    // document's own schema (d.cols) rather than being fixed at
+    // description/qty/price/amount, so a statement shows Date, Description,
+    // Charges, Payments and a running Balance, a timesheet shows Hours and
+    // Rate, and so on. Documents without a schema keep the invoice columns
+    // exactly as before.
     const liRows=items.querySelectorAll('.line-item');
-    html+='<div class="mobile-table"><table class="doc-items"><thead><tr><th>'+tr('description')+'</th><th>'+tr('qty')+'</th>'+(showPrice?('<th>'+tr('price')+'</th><th>'+tr('amount')+'</th>'):'')+'<th class="col-act"></th></tr></thead><tbody>';
+    const SEL={d:'.li-desc',q:'.li-qty',p:'.li-price',x1:'.li-x1',x2:'.li-x2'};
+    const cols = d.cols || (showPrice
+      ? [{k:'d',l:tr('description'),t:'text',ph:'Description of item or service'},
+         {k:'q',l:tr('qty'),t:'num'},
+         {k:'p',l:tr('price'),t:'money'},
+         {k:'amt',l:tr('amount'),t:'amt'}]
+      : [{k:'d',l:tr('description'),t:'text',ph:'Description of item or service'},
+         {k:'q',l:tr('qty'),t:'num'}]);
+
+    html+='<div class="mobile-table"><table class="doc-items"><thead><tr>';
+    cols.forEach(c=>{ html+='<th>'+esc(c.l)+'</th>'; });
+    html+='<th class="col-act"></th></tr></thead><tbody>';
+
+    let running = toMinor(val('g_openbal')||'0');
     liRows.forEach((rowEl,i)=>{
-      const dv2=rowEl.querySelector('.li-desc').value;
-      const qv=rowEl.querySelector('.li-qty').value||'1';
-      const pv=rowEl.querySelector('.li-price').value;
+      const get=k=>{const el=rowEl.querySelector(SEL[k]); return el?el.value:'';};
+      const qv=d.qtyOne?'1':(get('q')||'1');
+      const pv=get('p');
       const priceMinor=toMinor(pv), q2=parseFloat(qv)||0;
-      const grossMinor=M()?M().mulQty(priceMinor,q2):Math.round(priceMinor*q2);
-      html+='<tr data-row="'+i+'">'
-        + '<td data-label="'+tr('description')+'"><span class="li-lbl">'+tr('description')+'</span>'+edLine(i,'d',dv2,'Description of item or service')+'</td>'
-        + '<td data-label="'+tr('qty')+'"><span class="li-lbl">'+tr('qty')+'</span>'+edLine(i,'q',qv,'1','ed-num')+'</td>'
-        + (showPrice?('<td data-label="'+tr('price')+'"><span class="li-lbl">'+tr('price')+'</span>'+edLine(i,'p',pv,'0','ed-num')+'</td>'
-        + '<td data-label="'+tr('amount')+'" class="li-amount"><span class="li-lbl">'+tr('amount')+'</span><span class="li-amt-v">'+money(grossMinor)+'</span></td>'):'')
-        + '<td class="col-act">'+(liRows.length>1?'<button type="button" class="li-del" data-row="'+i+'" aria-label="Remove this line">&#10005;</button>':'')+'</td>'
-        + '</tr>';
+      const grossMinor=d.qtyOne?priceMinor:(M()?M().mulQty(priceMinor,q2):Math.round(priceMinor*q2));
+      if(d.statement){ running += toMinor(get('p')) - toMinor(get('x2')); }
+      html+='<tr data-row="'+i+'">';
+      cols.forEach(c=>{
+        html+='<td data-label="'+esc(c.l)+'"><span class="li-lbl">'+esc(c.l)+'</span>';
+        if(c.t==='amt')      html+='<span class="li-amt-v">'+money(grossMinor)+'</span>';
+        else if(c.t==='run') html+='<span class="li-amt-v">'+money(running)+'</span>';
+        else {
+          const cls=(c.t==='money'||c.t==='num')?'ed-num':'';
+          html+=edLine(i,c.k,get(c.k),c.ph||'',cls);
+        }
+        html+='</td>';
+      });
+      html+='<td class="col-act">'+(liRows.length>1?'<button type="button" class="li-del" data-row="'+i+'" aria-label="Remove this line">&#10005;</button>':'')+'</td>';
+      html+='</tr>';
     });
     html+='</tbody></table></div>';
     html+='<button type="button" class="doc-addline" id="docAddLine">+ Line item</button>';
     }
 
-    if(showPrice&&!d.noItems){
+    // A balance letter and a payment reminder are letters, not tables. Their
+    // whole purpose is ONE figure as at ONE date, which the invoice layout had
+    // no way to express - the totals block is skipped for them, so previously
+    // no amount appeared anywhere at all.
+    if(d.figure){
+      html+='<div class="doc-figure">'
+        + '<div class="doc-figure-row"><span class="doc-figure-label">'+esc(d.figure.amountLabel)+'</span>'
+        + '<span class="doc-figure-amount">'+ed(d.figure.amount,val(d.figure.amount),'0.00','ed-num ed-figure')+'</span></div>'
+        + '<div class="doc-figure-meta"><span>'+esc(d.figure.dateLabel)+'</span> '
+        + ed(d.figure.date,val(d.figure.date),'YYYY-MM-DD','ed-date')+'</div>'
+        + '</div>';
+    }
+    // A statement closes with opening balance, movements and closing balance.
+    if(d.statement){
+      const openM=toMinor(val('g_openbal')||'0');
+      let chg=0,pay=0;
+      items.querySelectorAll('.line-item').forEach(r=>{
+        chg+=toMinor((r.querySelector('.li-price')||{}).value||'0');
+        pay+=toMinor((r.querySelector('.li-x2')||{}).value||'0');
+      });
+      html+='<div class="totals">'
+        + '<div><span>Opening balance</span><span>'+ed('g_openbal',val('g_openbal'),'0.00','ed-num ed-rate')+'</span></div>'
+        + '<div><span>Charges in period</span><span>'+money(chg)+'</span></div>'
+        + '<div><span>Payments received</span><span>-'+money(pay)+'</span></div>'
+        + '<div class="grand"><span>Closing balance</span><span>'+money(openM+chg-pay)+'</span></div>'
+        + '</div>';
+    }
+    if(showPrice&&!d.noItems&&!d.statement){
       html+='<div class="totals"><div><span>'+tr('subtotal')+'</span><span id="tSub">'+money(sub)+'</span></div>';
       html+='<div><span>'+ed('g_taxname',taxLabel,'Tax')+' '+ed('g_taxrate',val('g_taxrate'),'0','ed-num ed-rate')+'%</span><span id="tTax">'+money(taxTotal)+'</span></div>';
       html+='<div class="opt-row"><span>'+tr('discount')+' '+ed('g_discval',val('g_discval'),'0','ed-num ed-rate')+'</span><span id="tDisc">-'+money(discount)+'</span></div>';
@@ -438,7 +529,10 @@ const countryChoice=document.getElementById('countryChoice'),currencyChoice=docu
         const rowEl=items.querySelectorAll('.line-item')[parseInt(el.dataset.line,10)];
         if(rowEl){
           const key=el.dataset.key;
-          const sel=key==='d'?'.li-desc':(key==='q'?'.li-qty':'.li-price');
+          // Write-back map must cover every schema key, or edits to the new
+          // columns (Date, Payments, HS code, Weight...) would silently vanish.
+          const SELW={d:'.li-desc',q:'.li-qty',p:'.li-price',x1:'.li-x1',x2:'.li-x2'};
+          const sel=SELW[key]||'.li-price';
           const input=rowEl.querySelector(sel); if(input) input.value=text;
         }
       }
@@ -612,12 +706,12 @@ const countryChoice=document.getElementById('countryChoice'),currencyChoice=docu
 
   // ---- Auto-save everything to the browser so nothing is lost on refresh ----
   const saveKey='ign_draft_v1';
-  const fieldIds=['g_doctype','g_doclang','g_bizname','g_bizemail','g_bizphone','g_bizaddr','g_biztax','g_country','g_currency','g_clientname','g_clientemail','g_clientaddr','g_deliveraddr','g_number','g_issue','g_due','g_po','g_terms','g_original','g_reason','g_taxname','g_taxrate','g_discval','g_disctype','g_shipping','g_deposit','g_status','g_notes','g_bank','g_payvia'];
+  const fieldIds=['g_openbal','g_balamt','g_asat','g_amtdue','g_origdue','g_period','g_origin','g_destination','g_incoterms','g_carrier','g_doctype','g_doclang','g_bizname','g_bizemail','g_bizphone','g_bizaddr','g_biztax','g_country','g_currency','g_clientname','g_clientemail','g_clientaddr','g_deliveraddr','g_number','g_issue','g_due','g_po','g_terms','g_original','g_reason','g_taxname','g_taxrate','g_discval','g_disctype','g_shipping','g_deposit','g_status','g_notes','g_bank','g_payvia'];
   function collect(){
     const o={fields:{},checks:{},lines:[],mode:'adv',template:root.dataset.template||'modern',logo:logoData||''};
     fieldIds.forEach(id=>{const el=$(id);if(el)o.fields[id]=el.value;});
     ['g_sameaddr','g_taxincl','g_showsig'].forEach(id=>{const el=$(id);if(el)o.checks[id]=el.checked;});
-    items.querySelectorAll('.line-item').forEach(r=>{o.lines.push({d:r.querySelector('.li-desc').value,q:r.querySelector('.li-qty').value,p:r.querySelector('.li-price').value,t:(r.querySelector('.li-tax')||{}).value||''});});
+    items.querySelectorAll('.line-item').forEach(r=>{o.lines.push({d:r.querySelector('.li-desc').value,q:r.querySelector('.li-qty').value,p:r.querySelector('.li-price').value,t:(r.querySelector('.li-tax')||{}).value||'',x1:(r.querySelector('.li-x1')||{}).value||'',x2:(r.querySelector('.li-x2')||{}).value||''});});
     return o;
   }
   function saveDraft(){try{localStorage.setItem(saveKey,JSON.stringify(collect()));}catch(e){}}
@@ -626,7 +720,7 @@ const countryChoice=document.getElementById('countryChoice'),currencyChoice=docu
     if(!o||!o.fields) return false;
     // rebuild line rows to match
     if(o.lines&&o.lines.length){items.innerHTML='';o.lines.forEach(()=>{const d=document.createElement('div');d.className='line-item';d.innerHTML=rowInner;items.appendChild(d);});
-      const rows=items.querySelectorAll('.line-item');o.lines.forEach((ln,i)=>{const r=rows[i];if(!r)return;r.querySelector('.li-desc').value=ln.d||'';r.querySelector('.li-qty').value=ln.q||'1';r.querySelector('.li-price').value=ln.p||'';const lt=r.querySelector('.li-tax');if(lt)lt.value=ln.t||'';});}
+      const rows=items.querySelectorAll('.line-item');o.lines.forEach((ln,i)=>{const r=rows[i];if(!r)return;r.querySelector('.li-desc').value=ln.d||'';r.querySelector('.li-qty').value=ln.q||'1';r.querySelector('.li-price').value=ln.p||'';const lt=r.querySelector('.li-tax');if(lt)lt.value=ln.t||'';const a1=r.querySelector('.li-x1');if(a1)a1.value=ln.x1||'';const a2=r.querySelector('.li-x2');if(a2)a2.value=ln.x2||'';});}
     fieldIds.forEach(id=>{const el=$(id);if(el&&o.fields[id]!=null)el.value=o.fields[id];});
     Object.keys(o.checks||{}).forEach(id=>{const el=$(id);if(el)el.checked=!!o.checks[id];});
     if(o.template){root.dataset.template=o.template;tmplBtns.forEach(x=>x.classList.toggle('is-active',x.dataset.template===o.template));}
@@ -638,6 +732,21 @@ const countryChoice=document.getElementById('countryChoice'),currencyChoice=docu
   // The draft is restored silently. No banner: it misled first-time visitors into
   // thinking they had an account, and it implied we store their data.
   restoreDraft();
+
+  // A ?doc= deep link is an explicit instruction from the visitor - they clicked
+  // "Open the proforma invoice builder" - so it must beat the restored draft.
+  // This has to sit AFTER restoreDraft() for that to hold.
+  try{
+    const wanted=new URLSearchParams(location.search).get('doc');
+    const sel=$('g_doctype');
+    if(wanted && DOCS[wanted] && sel && sel.value!==wanted){
+      sel.value=wanted;
+      // Assigning .value does NOT fire change, so applyDoc would never run and
+      // the headings, visible fields and number prefix would stay on the old
+      // document type even though the dropdown had moved.
+      sel.dispatchEvent(new Event('change',{bubbles:true}));
+    }
+  }catch(e){}
   root.addEventListener('input',e=>{ if(fromDateOverlay(e)) return; clearTimeout(saveTimer);saveTimer=setTimeout(saveDraft,400);});
   window.addEventListener('pagehide',saveDraft);
 
@@ -874,17 +983,74 @@ const countryChoice=document.getElementById('countryChoice'),currencyChoice=docu
     if(val('g_status')) meta.push([tr('status'),val('g_status')]);
     if(val('g_terms')) meta.push(['Terms',val('g_terms')]);
 
-    const columns = noItems ? [] : (showPrice
-      ? [{label:tr('description'),width:88,bold:true},{label:tr('qty'),width:20,align:'right'},
-         {label:tr('price'),width:35,align:'right'},{label:tr('amount'),width:35,align:'right'}]
-      : [{label:tr('description'),width:138,bold:true},{label:tr('qty'),width:40,align:'right'}]);
+    // The PDF must mirror the document on screen. Without this the download
+    // reverted to invoice columns even when the document showed Date /
+    // Charges / Payments / Balance.
+    const SELP={d:'.li-desc',q:'.li-qty',p:'.li-price',x1:'.li-x1',x2:'.li-x2'};
+    const rowEls=[...items.querySelectorAll('.line-item')];
+    let columns, pdfRows;
+    if(noItems){ columns=[]; pdfRows=[]; }
+    else if(d.cols){
+      const TOT=178, n=d.cols.length;
+      const wide=d.cols.filter(c=>c.t==='text').length||1;
+      const narrow=(n-wide);
+      const nw=Math.max(22,Math.floor(TOT*0.16));
+      const ww=Math.floor((TOT-nw*narrow)/wide);
+      columns=d.cols.map(c=>({label:c.l,width:c.t==='text'?ww:nw,
+        bold:c.t==='text'&&c.k==='d',align:c.t==='text'?'left':'right'}));
+      let run=toMinor(val('g_openbal')||'0');
+      pdfRows=rowEls.map(rEl=>{
+        const g=k=>{const el=rEl.querySelector(SELP[k]);return el?el.value:'';};
+        const qv=d.qtyOne?'1':(g('q')||'1');
+        const pm=toMinor(g('p')), q2=parseFloat(qv)||0;
+        const gross=d.qtyOne?pm:(M()?M().mulQty(pm,q2):Math.round(pm*q2));
+        if(d.statement) run += toMinor(g('p')) - toMinor(g('x2'));
+        return {cells:d.cols.map(c=>{
+          if(c.t==='amt') return money(gross);
+          if(c.t==='run') return money(run);
+          if(c.t==='money') return g(c.k)?money(toMinor(g(c.k))):'';
+          if(c.k==='q') return String(qv);
+          return g(c.k)||'';
+        })};
+      });
+    } else {
+      columns = showPrice
+        ? [{label:tr('description'),width:88,bold:true},{label:tr('qty'),width:20,align:'right'},
+           {label:tr('price'),width:35,align:'right'},{label:tr('amount'),width:35,align:'right'}]
+        : [{label:tr('description'),width:138,bold:true},{label:tr('qty'),width:40,align:'right'}];
+      pdfRows = rows.map(r=>({cells: showPrice
+        ? [r.desc,String(r.q),money(r.priceMinor),money(r.grossMinor)]
+        : [r.desc,String(r.q)]}));
+    }
 
-    const pdfRows = noItems ? [] : rows.map(r=>({cells: showPrice
-      ? [r.desc,String(r.q),money(r.priceMinor),money(r.grossMinor)]
-      : [r.desc,String(r.q)]}));
+    if(d.period&&val('g_period').trim()) meta.push(['Period',val('g_period').trim()]);
+    if(d.route){
+      if(val('g_origin').trim())      meta.push(['Origin',val('g_origin').trim()]);
+      if(val('g_destination').trim()) meta.push(['Destination',val('g_destination').trim()]);
+      if(val('g_carrier').trim())     meta.push(['Carrier',val('g_carrier').trim()]);
+    }
+    if(d.incoterms&&val('g_incoterms').trim()) meta.push(['Incoterms',val('g_incoterms').trim()]);
+    if(d.figure){
+      if(val(d.figure.date))   meta.push([d.figure.dateLabel,val(d.figure.date)]);
+    }
 
     const totals=[];
-    if(showPrice&&!noItems){
+    if(d.figure){
+      totals.push([d.figure.amountLabel, money(toMinor(val(d.figure.amount)||'0')), true]);
+    }
+    if(d.statement){
+      let chg=0,pay=0;
+      items.querySelectorAll('.line-item').forEach(r=>{
+        chg+=toMinor((r.querySelector('.li-price')||{}).value||'0');
+        pay+=toMinor((r.querySelector('.li-x2')||{}).value||'0');
+      });
+      const openM=toMinor(val('g_openbal')||'0');
+      totals.push(['Opening balance',money(openM),false]);
+      totals.push(['Charges in period',money(chg),false]);
+      totals.push(['Payments received','-'+money(pay),false]);
+      totals.push(['Closing balance',money(openM+chg-pay),true]);
+    }
+    if(showPrice&&!noItems&&!d.statement){
       totals.push([tr('subtotal'),money(sub),false]);
       if(discount>0) totals.push([tr('discount'),'-'+money(discount),false]);
       if(taxTotal>0) totals.push([taxLabel,money(taxTotal),false]);
