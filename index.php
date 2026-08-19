@@ -119,13 +119,8 @@ page_header('Invoice generator',false,'Invoice generator: create a professional 
         <div><label data-role="number-label">Invoice number</label><input id="g_number" value="INV-0001"></div>
         <div><label for="g_issue">Issue date</label><input id="g_issue" type="date" aria-describedby="dateFmtHint"><small class="muted date-hint" id="dateFmtHint">Prints on the document as YYYY-MM-DD</small></div>
         <div data-role="due-field"><label for="g_due" data-role="due-label">Due date</label><input id="g_due" type="date">
-          <div class="due-presets" role="group" aria-label="Set the due date relative to the issue date">
-            <button type="button" class="due-chip" data-days="0">On receipt</button>
-            <button type="button" class="due-chip" data-days="7">7 days</button>
-            <button type="button" class="due-chip" data-days="14">14 days</button>
-            <button type="button" class="due-chip" data-days="30">30 days</button>
-          </div>
         </div>
+        <div data-role="paiddate-field" hidden><label for="g_paiddate">Payment received</label><input id="g_paiddate" type="date"></div>
         <div data-role="figure-amount" hidden><label for="g_balamt">Balance owed</label><input id="g_balamt" type="number" step="0.01" min="0" placeholder="0.00"></div>
         <div data-role="figure-amtdue" hidden><label for="g_amtdue">Amount outstanding</label><input id="g_amtdue" type="number" step="0.01" min="0" placeholder="0.00"></div>
         <div data-role="figure-asat" hidden><label for="g_asat">As at date</label><input id="g_asat" type="date"></div>

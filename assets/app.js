@@ -79,7 +79,7 @@ const countryChoice=document.getElementById('countryChoice'),currencyChoice=docu
     'quote':{title:'QUOTE',prefix:'Q-',due:false,valid:true,to:'Quote for',from:'From'},
     'estimate':{title:'ESTIMATE',prefix:'EST-',due:false,valid:true,to:'Estimate for',from:'From',notice:'This is an estimate. The final amount may vary.'},
     'credit-note':{title:'CREDIT NOTE',prefix:'CN-',due:false,to:'Credit to',from:'From',original:true},
-    'receipt':{title:'RECEIPT',prefix:'REC-',due:false,to:'Received from',from:'From',original:true,paidLabel:true},
+    'receipt':{title:'RECEIPT',prefix:'REC-',due:false,to:'Received from',from:'From',original:true,paidLabel:true,paidDate:true},
     'purchase-order':{title:'PURCHASE ORDER',prefix:'PO-',due:false,deliver:true,to:'Supplier',from:'Buyer'},
     'delivery-note':{title:'DELIVERY NOTE',prefix:'DN-',due:false,deliver:true,noPrice:true,to:'Deliver to',from:'From',sign:true},
     'statement':{title:'STATEMENT OF ACCOUNT',prefix:'ST-',due:false,to:'Account for',from:'From',cols:[{k:'x1',l:'Date',t:'text',ph:'2026-08-01'},{k:'d',l:'Description',t:'text',ph:'Invoice INV-0001'},{k:'p',l:'Charges',t:'money'},{k:'x2',l:'Payments',t:'money'},{k:'run',l:'Balance',t:'run'}],opening:true,statement:true},
@@ -134,6 +134,7 @@ const countryChoice=document.getElementById('countryChoice'),currencyChoice=docu
   const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   if($('g_issue'))$('g_issue').value=iso(today);
   if($('g_due'))$('g_due').value=iso(due);
+  if($('g_paiddate'))$('g_paiddate').value=iso(today);
 
   // Logo (client-side only)
   function refreshLogoUI(){
@@ -211,6 +212,7 @@ const countryChoice=document.getElementById('countryChoice'),currencyChoice=docu
     show('figure-amtdue',  !!(d.figure&&d.figure.amount==='g_amtdue'));
     show('figure-asat',    !!(d.figure&&d.figure.date==='g_asat'));
     show('figure-origdue', !!(d.figure&&d.figure.date==='g_origdue'));
+    show('paiddate-field', !!d.paidDate);
     show('opening-field',  !!d.opening);
     show('period-field',   !!d.period);
     show('route-origin',   !!d.route);
@@ -349,6 +351,9 @@ const countryChoice=document.getElementById('countryChoice'),currencyChoice=docu
     if(deliver||($('g_sameaddr')&&!$('g_sameaddr').checked)) html+='<strong>Deliver to</strong><p class="muted">'+edML('g_deliveraddr',deliver,'Delivery address')+'</p>';
     html+='<strong>'+tr('issue')+':</strong> '+ed('g_issue',val('g_issue')||'','YYYY-MM-DD','ed-date');
     if(d.due||d.valid) html+='<br><strong>'+(d.valid?tr('valid'):tr('due'))+':</strong> '+ed('g_due',val('g_due')||'','YYYY-MM-DD','ed-date');
+    // A receipt records WHEN THE MONEY ARRIVED, which is often not the day the
+    // receipt is written. One date labelled "Issue" was doing both jobs.
+    if(d.paidDate) html+='<br><strong>Payment received:</strong> '+ed('g_paiddate',val('g_paiddate')||'','YYYY-MM-DD','ed-date');
     html+='<br><strong>'+tr('po')+':</strong> '+ed('g_po',val('g_po').trim(),'optional');
     if(d.original&&val('g_original').trim()) html+='<br><strong>Ref invoice:</strong> '+esc(val('g_original').trim());
     if(val('g_doctype')==='credit-note'&&val('g_reason').trim()) html+='<br><strong>Reason:</strong> '+esc(val('g_reason').trim());
@@ -625,28 +630,9 @@ const countryChoice=document.getElementById('countryChoice'),currencyChoice=docu
     if(e.target && e.target.type==='date'){ editing=false; render(); }
   });
 
-  // Due-date presets. Offsets run from the ISSUE date, not from today, so
-  // back-dating an invoice still yields correct terms.
-  (function(){
-    const presets=root.querySelector('.due-presets'); if(!presets) return;
-    presets.addEventListener('click',e=>{
-      const chip=e.target.closest('.due-chip'); if(!chip) return;
-      const issueEl=$('g_issue'), dueEl=$('g_due'); if(!issueEl||!dueEl) return;
-      const base=issueEl.value?new Date(issueEl.value+'T00:00:00'):new Date();
-      if(isNaN(base.getTime())) return;
-      const days=parseInt(chip.dataset.days,10)||0;
-      base.setDate(base.getDate()+days);
-      const pad=n=>String(n).padStart(2,'0');
-      dueEl.value=base.getFullYear()+'-'+pad(base.getMonth()+1)+'-'+pad(base.getDate());
-      presets.querySelectorAll('.due-chip').forEach(c=>c.classList.toggle('is-active',c===chip));
-      editing=false; render();
-    });
-    // A manual edit clears the preset highlight; it no longer describes the value.
-    const dueEl=$('g_due');
-    if(dueEl) dueEl.addEventListener('input',()=>{
-      presets.querySelectorAll('.due-chip').forEach(c=>c.classList.remove('is-active'));
-    });
-  })();
+  // Due-date presets removed in V71. Both dates now default to the current
+  // date and the picker sets them directly, so a row of relative shortcuts was
+  // a second way to do the same thing.
   root.addEventListener('change',e=>{ if(fromDateOverlay(e)) return; if(!editing) render(); });
 
   // Template gallery
@@ -702,11 +688,11 @@ const countryChoice=document.getElementById('countryChoice'),currencyChoice=docu
     });
   })();
 
-  $('genReset').addEventListener('click',()=>{root.querySelectorAll('input,textarea').forEach(i=>{if(i.type==='file')i.value='';else if(i.type==='checkbox')i.checked=(i.id==='g_sameaddr');else if(i.id==='g_number')i.value=currentDoc().prefix+'0001';else if(i.classList.contains('li-qty'))i.value='1';else if(i.id==='g_taxname')i.value='Tax';else if(i.id==='g_taxrate'||i.id==='g_discval'||i.id==='g_shipping'||i.id==='g_deposit')i.value='0';else i.value='';});logoData='';$('g_issue').value=iso(today);$('g_due').value=iso(due);render();});
+  $('genReset').addEventListener('click',()=>{root.querySelectorAll('input,textarea').forEach(i=>{if(i.type==='file')i.value='';else if(i.type==='checkbox')i.checked=(i.id==='g_sameaddr');else if(i.id==='g_number')i.value=currentDoc().prefix+'0001';else if(i.classList.contains('li-qty'))i.value='1';else if(i.id==='g_taxname')i.value='Tax';else if(i.id==='g_taxrate'||i.id==='g_discval'||i.id==='g_shipping'||i.id==='g_deposit')i.value='0';else i.value='';});logoData='';$('g_issue').value=iso(today);$('g_due').value=iso(due);if($('g_paiddate'))$('g_paiddate').value=iso(today);render();});
 
   // ---- Auto-save everything to the browser so nothing is lost on refresh ----
   const saveKey='ign_draft_v1';
-  const fieldIds=['g_openbal','g_balamt','g_asat','g_amtdue','g_origdue','g_period','g_origin','g_destination','g_incoterms','g_carrier','g_doctype','g_doclang','g_bizname','g_bizemail','g_bizphone','g_bizaddr','g_biztax','g_country','g_currency','g_clientname','g_clientemail','g_clientaddr','g_deliveraddr','g_number','g_issue','g_due','g_po','g_terms','g_original','g_reason','g_taxname','g_taxrate','g_discval','g_disctype','g_shipping','g_deposit','g_status','g_notes','g_bank','g_payvia'];
+  const fieldIds=['g_paiddate','g_openbal','g_balamt','g_asat','g_amtdue','g_origdue','g_period','g_origin','g_destination','g_incoterms','g_carrier','g_doctype','g_doclang','g_bizname','g_bizemail','g_bizphone','g_bizaddr','g_biztax','g_country','g_currency','g_clientname','g_clientemail','g_clientaddr','g_deliveraddr','g_number','g_issue','g_due','g_po','g_terms','g_original','g_reason','g_taxname','g_taxrate','g_discval','g_disctype','g_shipping','g_deposit','g_status','g_notes','g_bank','g_payvia'];
   function collect(){
     const o={fields:{},checks:{},lines:[],mode:'adv',template:root.dataset.template||'modern',logo:logoData||''};
     fieldIds.forEach(id=>{const el=$(id);if(el)o.fields[id]=el.value;});
@@ -819,6 +805,7 @@ const countryChoice=document.getElementById('countryChoice'),currencyChoice=docu
       snap.fields.g_number = d.prefix ? (d.prefix+'0001') : '';
       snap.fields.g_issue = iso(today);
       snap.fields.g_due = iso(due);
+      snap.fields.g_paiddate = iso(today);
       applyHistoryEntry(snap);
       announce('Duplicated. Update the details and download when ready.');
     }); }
@@ -977,6 +964,7 @@ const countryChoice=document.getElementById('countryChoice'),currencyChoice=docu
     const meta=[];
     meta.push([tr('issue'),val('g_issue')||'-']);
     if(d.due||d.valid) meta.push([d.valid?tr('valid'):tr('due'),val('g_due')||'-']);
+    if(d.paidDate) meta.push(['Payment received',val('g_paiddate')||'-']);
     if(val('g_po').trim()) meta.push([tr('po'),val('g_po').trim()]);
     if(d.original&&val('g_original').trim()) meta.push(['Ref invoice',val('g_original').trim()]);
     if(val('g_doctype')==='credit-note'&&val('g_reason').trim()) meta.push(['Reason',val('g_reason').trim()]);

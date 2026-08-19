@@ -1,0 +1,68 @@
+InvoiceGeneratorNow ClaudeV73
+
+The document controls now read as the starting point.
+
+
+Why
+- The two boxes that decide WHAT you are making, the Document and Language
+  card and the Currency, logo and options panel, sat in exactly the same plain
+  white card as every other panel on the page. Nothing marked them as the
+  first decision, so the eye had no reason to land there before scrolling on.
+
+What changed
+- Both boxes now carry the accent: a tinted field (--accent-soft), a defined
+  1.5px accent border, and selects outlined in the accent on a white
+  background. Labels lift to the brand navy at weight 600.
+- The selects deliberately stay white inside the tint. The tint frames the
+  control; the value you have chosen stays the highest-contrast thing in the
+  box rather than competing with its own background.
+- The disclosure marker on Currency, logo and options picks up the accent, and
+  the helper line under the language select stays quiet against the tint.
+
+On the thick blue line
+- A flat 3px blue box was the obvious reading of the request, and it is the
+  one that would have looked cheap. Weight alone reads as a warning state.
+  What makes this feel premium is the tint doing the work of separation, with
+  the border defining the edge at a restrained 1.5px.
+
+Both themes
+- Dark mode was checked first, because a light-blue tint is exactly the kind
+  of treatment that breaks there. It does not: --accent-soft is a deep navy
+  (#1a2740) in dark and --accent lifts to #5b83f0, so the same rules produce a
+  correctly weighted dark panel rather than a pale box.
+- Measured:
+      light  label  #12325e on #eef3ff   11.50:1
+      light  border #2a56d6 on #eef3ff    5.56:1
+      dark   label  #dbe6fb on #1a2740   11.88:1
+      dark   border #5b83f0 on #1a2740    4.23:1
+  Text clears WCAG AAA in both themes. Borders clear 1.4.11 for non-text UI
+  components, which needs 3:1, in both.
+
+Cascade
+- The block sits last in the stylesheet so it beats the generic .field-card
+  rules and the earlier dark-theme overrides on ordering and specificity,
+  rather than forcing it with !important.
+- Verified by resolving each property to its winning declaration:
+      .field-card.doc-controls background  -> var(--accent-soft)
+      .field-card.doc-controls border      -> 1.5px solid var(--accent)
+      > .doc-options background            -> var(--accent-soft)
+  and the same in dark.
+
+Unchanged
+- Styling only. No markup, no JavaScript, no behaviour.
+- The print stylesheet already hides both boxes, so nothing reaches a printed
+  or downloaded document.
+- Verified intact: V72 receipt payment date, V71 preset removal (3 of 3 files
+  clean), V69 document layouts (7 custom), V68 article fix, V67 deep-link fix,
+  V66 date-overlay guards (4 of 4).
+
+Test results
+  PHP syntax lint, 60 files             pass
+  app.js syntax check                   pass
+  Undefined function scan               0 found
+  Page execution, 42 web-facing pages   42 pass, 0 fatal
+  CSS brace balance                     899 / 899
+  CSS comment balance                   188 / 188
+
+Packaging
+- Asset cache-buster bumped from v72 to v73. style.css changed.
