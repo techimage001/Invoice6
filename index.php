@@ -29,7 +29,7 @@ page_header('Invoice generator',false,'Invoice generator: create a professional 
               <option value="quote">Quote</option>
               <option value="estimate">Estimate</option>
               <option value="sales-order">Sales order</option>
-            </optgroup>
+            <option value="rent-invoice">Rent invoice</option><option value="retainer-invoice">Retainer invoice</option></optgroup>
             <optgroup label="Stage billing">
               <option value="deposit-invoice">Deposit invoice</option>
               <option value="progress-invoice">Progress invoice</option>
@@ -39,12 +39,12 @@ page_header('Invoice generator',false,'Invoice generator: create a professional 
               <option value="credit-note">Credit note</option>
               <option value="debit-note">Debit note</option>
               <option value="return-note">Return note</option>
-            </optgroup>
+            <option value="refund-note">Refund note</option></optgroup>
             <optgroup label="Payment">
               <option value="receipt">Receipt</option>
               <option value="payment-reminder">Payment reminder</option>
               <option value="account-balance-letter">Account balance letter</option>
-            </optgroup>
+            <option value="remittance-advice">Remittance advice</option><option value="payment-voucher">Payment voucher</option><option value="cash-receipt">Cash receipt</option><option value="rent-receipt">Rent receipt</option></optgroup>
             <optgroup label="Operational">
               <option value="purchase-order">Purchase order</option>
               <option value="work-order">Work order / job sheet</option>
@@ -54,7 +54,7 @@ page_header('Invoice generator',false,'Invoice generator: create a professional 
               <option value="goods-received-note">Goods received note</option>
               <option value="completion-certificate">Completion certificate</option>
               <option value="statement">Client statement</option>
-            </optgroup>
+            <option value="delivery-challan">Delivery challan</option><option value="consignment-note">Consignment note</option><option value="job-sheet">Job sheet</option></optgroup>
             <optgroup label="Time &amp; expenses">
               <option value="timesheet">Timesheet</option>
               <option value="expense-report">Expense report</option>

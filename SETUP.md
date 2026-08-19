@@ -42,7 +42,6 @@ secrets file, outside public_html. Deployments cannot touch it.
     api/leads.php        admin dashboard, password login, verified CSV export
     api/unsubscribe.php  deletes the record outright
     api/logout.php       clears the unlock cookie
-    api/check.php        TEMPORARY diagnostic, delete once satisfied
 
 This is a direct port of the Card Maker Messages system, which is proven in production.
 One INSERT then one send. Every failure returns a status code and a message that appears
@@ -57,11 +56,12 @@ Sign in with admin_password from secrets.php.
 2. Enter a real email. The screen shows the server's own message either way.
 3. Open the link in your inbox. You return verified and unlocked on that browser.
 4. Open /api/leads.php and the address is listed as verified.
-5. Delete api/check.php.
 
 If step 2 shows an error, that text is the real cause. If you want the full picture,
-open /api/check.php?to=you@gmail.com first: it prints which secrets file was found,
-every value in use, whether the database folder is writable, and a real send attempt
+check the mailbox exists in hPanel and that smtp_user is that exact mailbox
+(an alias or forwarder cannot authenticate). Hostinger SMTP is smtp.hostinger.com,
+port 465, ssl. If mail sends but lands in spam, add SPF and DKIM records under
+hPanel > Emails > DNS.
 with the exact SMTP error.
 
 ## Accounts

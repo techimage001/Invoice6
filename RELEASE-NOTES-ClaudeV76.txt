@@ -1,0 +1,99 @@
+InvoiceGeneratorNow ClaudeV76
+
+Ten new document types and four synonym pages. 26 documents to 36, 26 landing
+pages to 40.
+
+
+Why these, and why not more invoice pages
+- Search Console showed the site ranking positions 8 to 11 for waybill,
+  return note and balance letter inside two weeks with no backlinks, while
+  progress invoice sat at 26 to 47. The pattern is clear: you win on the niche
+  documents the large invoicing sites do not bother with, and struggle where
+  they compete.
+- A correction to my earlier reading: zero clicks on 55 impressions is not a
+  signal. At those positions the expected click count was 0.35, so zero is the
+  normal outcome at that volume, not evidence of a title problem. The right
+  conclusion was the opposite of the one I first drew: if pages rank on page
+  one with no authority, more pages of the same shape should rank too.
+
+TIER 1, the same niche shape as what already ranks
+    delivery-challan     Description | Qty | Unit | Remarks
+                         quantities not prices, plus origin, destination,
+                         carrier and a receiver signature
+    consignment-note     Description | Packages | Weight | Dimensions
+    remittance-advice    Invoice date | Invoice number | Invoice amount |
+                         Amount paid, so one payment can be allocated across
+                         several invoices
+    payment-voucher      Particulars | Account code | Amount, with prepared,
+                         approved and received signatures
+    cash-receipt         receipt layout with a separate payment-received date
+
+TIER 2, recurring commercial need
+    rent-invoice         invoice layout with a rental period field
+    rent-receipt         receipt layout with period covered and payment date
+    job-sheet            Date | Work carried out | Hours | Parts used,
+                         no prices, customer signature on site
+    retainer-invoice     invoice layout with the retained period
+    refund-note          references the original invoice; the one genuine gap
+                         in the Search Console data
+
+TIER 3, synonyms rather than new builders
+    progress-billing  -> builds a progress invoice
+    quotation         -> builds a quote
+    credit-memo       -> builds a credit note
+    debit-memo        -> builds a debit note
+- These are NOT duplicate pages. Each has its own keyword, title, first
+  answer, five FAQs and body copy written for the synonym, and each explains
+  the relationship to the canonical term rather than pretending to be a
+  different document. A new 'builds' key in the registry points the call to
+  action at the document type that actually produces the file, so
+  credit-memo-template.php opens the credit note builder.
+
+SEO, done to the same standard as the existing pages
+- All 40 template pages verified for: meta description, canonical, Open Graph
+  title, breadcrumb schema, five FAQ entries with FAQPage schema, exactly one
+  h1, an AI-overview first-answer paragraph directly beneath it, and a working
+  ?doc= deep link. 40 of 40 complete.
+- Every first-answer paragraph is unique: 14 of 14 distinct across the new
+  pages, 260 to 335 characters, written to answer the query directly in the
+  first sentence.
+- Each new page renders 13.5 to 14.3 KB of real content. No stubs.
+- Internal linking: the footer gained a Logistics and payments column and now
+  links all 40 pages. templates.php builds from the registry so it picked up
+  all 40 automatically. sitemap.xml gained 14 URLs, now 50 in total, and
+  validates as XML.
+
+Alignment check
+    builder document types   36
+    landing pages            40   (36 documents + 4 synonyms)
+    footer links             40
+    sitemap entries          40
+    pages missing from footer or sitemap: none
+
+Nothing else changed
+- The invoice definition is byte for byte as before, and every previously
+  existing document keeps its layout. 12 documents now carry a custom column
+  schema, up from 7; the rest use the invoice columns unchanged.
+- Verified intact: V75 (api/check.php absent), V74 signup panel, V73 accent
+  boxes, V72 receipt payment date, V71 preset removal.
+
+Test results
+  PHP syntax lint, 73 files              pass
+  app.js syntax check                    pass
+  Undefined function scan                0 found
+  Page execution, 56 web-facing pages    56 pass, 0 fatal
+  SEO structure, 40 template pages       40 of 40 complete
+  Unique first-answer paragraphs         14 of 14
+  Deep links resolving correctly         14 of 14
+  sitemap.xml                            valid XML, 50 URLs
+
+Worth knowing
+- Ranking is a projection from nine data points. The honest test is four
+  weeks: if delivery challan and consignment note land page one the way
+  waybill did, the pattern holds and is worth extending. If they do not, one
+  build has been spent rather than three.
+- Submit the updated sitemap in Search Console so the 14 new URLs are found
+  quickly rather than by crawl.
+
+Packaging
+- Asset cache-buster bumped from v75 to v76.
